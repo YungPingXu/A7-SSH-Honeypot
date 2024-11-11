@@ -1,0 +1,11 @@
+{
+    "phrase_replace": {
+        "lifetime": 10
+    },
+    "backend": {
+        "username": "root",
+        "password": "lZupZLJVMS4UxVA8ZRVG",
+        "root_password": "lZupZLJVMS4UxVA8ZRVG",
+        "sudo_hidden_phrase": "kz4OX1OqyT4Hz9mRjk2Wd"
+    }
+}
