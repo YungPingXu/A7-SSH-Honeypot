@@ -661,14 +661,15 @@ class ResponseGenerator:
 
         # In this case, match candidate login to the credentials provided by attacker.
         else:
-            is_logged_in = True
-            # USERNAME = ['root', 'admin', 'user']
-            # PASSWORDS = ['123', 'asd']
-            # if username in USERNAME and password in PASSWORDS:
-            #     log.msg(f'Attacker {attacker_ip} login with ({username},{password}).')
-            #     is_logged_in = True
+            #is_logged_in = True
 
-            # is_logged_in = False
+            is_logged_in = False
+            USERNAME = ['root', 'admin', 'user']
+            PASSWORDS = ['123', 'asd']
+            if username in USERNAME and password in PASSWORDS:
+                log.msg(f'Attacker {attacker_ip} login with ({username},{password}).')
+                is_logged_in = True
+
             # if attacker_ip in self.login_cand_collect:
             #     accept_login = self.login_cand_collect[attacker_ip]
             # else:
