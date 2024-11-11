@@ -610,14 +610,15 @@ class SSH(base_protocol.BaseProtocol):
         # When the connection lost, attacker_info will be cleared.
         while self.server.is_connected:
             # The timer for attacker command execution is started and timeout reached.
-            if self.last_prompt is not None and (datetime.now() - self.last_prompt).total_seconds() >= SSH.EXECUTION_TIMEOUT:
+            if self.last_prompt is not None and (datetime.now() - self.last_prompt).total_seconds() > 1000:#SSH.EXECUTION_TIMEOUT:
                 log.msg('Execution timeout is reached. Sending Ctrl+C to backend pool.')
 
                 payloads = response_generator.ResponseGenerator.generate_packets(b'\x03')
                 for payload in payloads:
                     self.client.sendPacket(response_generator.ResponseGenerator.MESSAGE_NUM, payload)
 
-                payloads = response_generator.ResponseGenerator.generate_packets(b'[PAM] Execution timeout or you do NOT have enough privilege.\r\n')
+                #payloads = response_generator.ResponseGenerator.generate_packets(b'[PAM] Execution timeout or you do NOT have enough privilege.\r\n')
+                payloads = response_generator.ResponseGenerator.generate_packets(b'Process killed.\r\n')
                 for payload in payloads:
                     self.server.sendPacket(response_generator.ResponseGenerator.MESSAGE_NUM, payload)
 
