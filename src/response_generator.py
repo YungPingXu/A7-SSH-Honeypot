@@ -661,15 +661,16 @@ class ResponseGenerator:
 
         # In this case, match candidate login to the credentials provided by attacker.
         else:
-            #is_logged_in = True
+            is_logged_in = True
 
-            is_logged_in = False
-            USERNAME = ['root', 'admin', 'user']
-            PASSWORDS = ['123', 'asd']
-            if username in USERNAME and password in PASSWORDS:
-                log.msg(f'Attacker {attacker_ip} login with ({username},{password}).')
-                is_logged_in = True
+            # is_logged_in = False
+            # USERNAME = ['root', 'admin', 'user']
+            # PASSWORDS = ['123', 'asd']
+            # if username in USERNAME and password in PASSWORDS:
+            #     log.msg(f'Attacker {attacker_ip} login with ({username},{password}).')
+            #     is_logged_in = True
 
+            # is_logged_in = False
             # if attacker_ip in self.login_cand_collect:
             #     accept_login = self.login_cand_collect[attacker_ip]
             # else:
@@ -960,61 +961,61 @@ class ResponseGenerator:
         return content
 
 
-    # Action ID 12
-    def action_stuff(self, attacker_cmd: bytes) -> Union[str, bytes]:
+    # # Action ID 12
+    # def action_stuff(self, attacker_cmd: bytes) -> Union[str, bytes]:
 
-        response = b'for ((;;)); do bash -c ' + quote(attacker_cmd.decode()).encode() + b'; done'
-        log.msg('[Post-Process/action_stuff] Stuff repeated and endless output back.')
+    #     response = b'for ((;;)); do bash -c ' + quote(attacker_cmd.decode()).encode() + b'; done'
+    #     log.msg('[Post-Process/action_stuff] Stuff repeated and endless output back.')
 
-        return response
-
-
-    # Action ID 13
-    def action_leak_info(self, attacker_id: str, attacker_cmd: bytes) -> Union[str, bytes]:
-
-        # Fake login record.
-        username = self.get_attacker_already_login(attacker_id)[0]
-        ip = self.pick_from_backendPool(self.query_backend_ip(attacker_id))[1]
-        port = randint(50000, 60000)
-        records = self.run_command_in_backend(attacker_id, f"cat /var/log/auth.log | grep --color=never 'Accepted password'")
-
-        if len(ip) > 0:
-            if len(records) == 0:
-                record = datetime.now().strftime('%b %d %H:%M:%S') + f' localhost sshd[{randint(1000, 100000)}]: Accepted password for username from 127.0.0.1 port 1234 ssh2'
-            else:
-                record = records[0].decode()
-
-            record = re.sub(r'for [a-z0-9.-_]+', f'for {username}', record)
-            record = re.sub(r'from [0-9.]+', f'from {ip}', record)
-            record = re.sub(r'port [0-9]+', f'port {port}', record)
-
-            log.msg(f'[Post-Process/action_leakInfo] Add a login record "{record}" in /var/log/auth.log file.')
-            self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c \"echo '{record}' >> /var/log/auth.log; #{self.backend_hidden_phrase}\"")
-
-        else:
-            log.msg('[Post-Process/action_leakInfo] No fake ip available.')
-
-        return attacker_cmd
+    #     return response
 
 
-    # Action ID 14
-    def action_send_phishing_email(self, attacker_id: str, attacker_cmd: bytes) -> Union[str, bytes]:
+    # # Action ID 13
+    # def action_leak_info(self, attacker_id: str, attacker_cmd: bytes) -> Union[str, bytes]:
 
-        backend_ip = self.query_backend_ip(attacker_id)
-        email_domain = backend_ip.replace('.', '-') + '.local'
-        sender = self.get_attacker_already_login(attacker_id)[0] + '@' + email_domain
-        receiver = COMMON_USERNAMES[randint(0, len(COMMON_USERNAMES) - 1)] + '@' + email_domain
-        subject = f'[Warn] Security event on vserver {backend_ip}'
-        content = ''.join((f'Several security events occurred on vserver internal-ip={backend_ip} !\n'
-                           f'Please login and check running process or system log.\n'
-                           f'Check this: "http://{backend_ip}/security/admin".\n',
-                           f' - From DEFENDER v2.1.0'))
-        send_cmd = f"echo {quote(content)} | mail -s {quote(subject)} -a 'From: {sender}' '{receiver}'"
+    #     # Fake login record.
+    #     username = self.get_attacker_already_login(attacker_id)[0]
+    #     ip = self.pick_from_backendPool(self.query_backend_ip(attacker_id))[1]
+    #     port = randint(50000, 60000)
+    #     records = self.run_command_in_backend(attacker_id, f"cat /var/log/auth.log | grep --color=never 'Accepted password'")
 
-        log.msg(f'[Post-Process/action_send_phishing_email] Send phishing e-mail with command "{send_cmd}".')
-        self.run_command_in_backend(attacker_id, send_cmd)
+    #     if len(ip) > 0:
+    #         if len(records) == 0:
+    #             record = datetime.now().strftime('%b %d %H:%M:%S') + f' localhost sshd[{randint(1000, 100000)}]: Accepted password for username from 127.0.0.1 port 1234 ssh2'
+    #         else:
+    #             record = records[0].decode()
 
-        return attacker_cmd
+    #         record = re.sub(r'for [a-z0-9.-_]+', f'for {username}', record)
+    #         record = re.sub(r'from [0-9.]+', f'from {ip}', record)
+    #         record = re.sub(r'port [0-9]+', f'port {port}', record)
+
+    #         log.msg(f'[Post-Process/action_leakInfo] Add a login record "{record}" in /var/log/auth.log file.')
+    #         self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c \"echo '{record}' >> /var/log/auth.log; #{self.backend_hidden_phrase}\"")
+
+    #     else:
+    #         log.msg('[Post-Process/action_leakInfo] No fake ip available.')
+
+    #     return attacker_cmd
+
+
+    # # Action ID 14
+    # def action_send_phishing_email(self, attacker_id: str, attacker_cmd: bytes) -> Union[str, bytes]:
+
+    #     backend_ip = self.query_backend_ip(attacker_id)
+    #     email_domain = backend_ip.replace('.', '-') + '.local'
+    #     sender = self.get_attacker_already_login(attacker_id)[0] + '@' + email_domain
+    #     receiver = COMMON_USERNAMES[randint(0, len(COMMON_USERNAMES) - 1)] + '@' + email_domain
+    #     subject = f'[Warn] Security event on vserver {backend_ip}'
+    #     content = ''.join((f'Several security events occurred on vserver internal-ip={backend_ip} !\n'
+    #                        f'Please login and check running process or system log.\n'
+    #                        f'Check this: "http://{backend_ip}/security/admin".\n',
+    #                        f' - From DEFENDER v2.1.0'))
+    #     send_cmd = f"echo {quote(content)} | mail -s {quote(subject)} -a 'From: {sender}' '{receiver}'"
+
+    #     log.msg(f'[Post-Process/action_send_phishing_email] Send phishing e-mail with command "{send_cmd}".')
+    #     self.run_command_in_backend(attacker_id, send_cmd)
+
+    #     return attacker_cmd
 
 
     # Action ID 15
@@ -1037,7 +1038,6 @@ class ResponseGenerator:
             if kill_after >= 3:
                 pids = self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'ps -e -o pid,user:255,etimes,comm | awk -v me={username} '\\''$2 == me && $3 <= {kill_after} {{ print $1 }}'\\''; #{self.backend_hidden_phrase}'")
                 pids = [int(pid.decode()) for pid in pids if pid.decode().isdigit()]
-
                 for pid in pids:
                     self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'kill -9 {pid}; #{self.backend_hidden_phrase}'")
                     log.msg(f'[Post-Process/action_kill_attacker_launched] Killed (user = {username}, pid = {pid}) launched by attacker.')

@@ -81,7 +81,6 @@ class EngageInterface:
 
             # PPS-DEBUG: Set fixed action at this time.
             #action = 16
-
             log.msg(f'Got response from engage handler. Selected action is {action} "{ACTION_ID2NAME[action]}".')
             log.msg(f'From state ({login_state}, {attr}, {suggested_activities}), selected action {action} "{ACTION_ID2NAME[action]}".')
 

@@ -25,7 +25,6 @@ import training
 from tracer import Tracer, LoggingType
 from action_matrix import ACTION_ID2NAME, ACTION_LEN, ACTIVITY_IDF2ID, ACTIVITY_IDF2NAME, ACTIVITY_LEN, MAPPING_ACTIVITY2ACTION
 
-
 tokenizer = AutoTokenizer.from_pretrained("jackaduma/SecBERT")
 cuda = torch.device('cuda')
 
@@ -355,6 +354,8 @@ class EngageHandler:
 
             while self.keep_running and not environments[0].done:
                 action = environments[1].select_action(environments[0].current_state)
+                if action in (12, 13, 14):
+                    action = 4
 
                 # DEBUG
                 # if len(PREDEFINED_ACTIONS[client_id]) > 0:

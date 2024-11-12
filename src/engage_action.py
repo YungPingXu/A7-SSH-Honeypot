@@ -11,10 +11,10 @@ ACTION_ID2NAME = ['',
                   'Replace system-related string from the executed command.',
                   'Output the executed command normally with some version variation.',
                   'Show part of executed command only.',
-                  'Stuff repeated and endless response to the attackers.',
-                  'Intentionally leak some important information in the file and allow command execution.',
-                  'Trigger the phishing email and stuff with fake data and allow command execution.',
+                  '',
+                  '',
+                  '',
                   'Reset system to the baseline.',
-                  'Kill processes launched by the attacker and allow command execution.']
+                  'Kill processes launched by the attacker.']
 
 ACTION_LEN = len(ACTION_ID2NAME) - 1

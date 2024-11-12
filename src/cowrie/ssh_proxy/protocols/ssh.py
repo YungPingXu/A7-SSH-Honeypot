@@ -49,6 +49,7 @@ from cowrie.ssh_proxy.util import int_to_hex, string_to_hex
 import wazuh_interface
 import response_generator
 
+
 PACKETLAYOUT = {
     1: "SSH_MSG_DISCONNECT",  # ['uint32', 'reason_code'], ['string', 'reason'], ['string', 'language_tag']
     2: "SSH_MSG_IGNORE",  # ['string', 'data']
@@ -366,17 +367,17 @@ class SSH(base_protocol.BaseProtocol):
             # PPS: This packet is for sending command in shell channel.
             channel = self.get_channel(self.extract_int(4), parent)
 
-            # PPS: To prevent attacker from checking the history commands, simply replace up or down arrow with end.
-            if payload.endswith(b'\x1b\x5b\x41') or payload.endswith(b'\x1b\x5b\x42'):
-                self.data = self.data[:-3] + b'\x1b\x5b\x46'
-                payload = payload[:-3] + b'\x1b\x5b\x46'
-                log.msg('Attacker pressed up or down arrow to trace history command. Replaced with end.')
+            # # PPS: To prevent attacker from checking the history commands, simply replace up or down arrow with end.
+            # if payload.endswith(b'\x1b\x5b\x41') or payload.endswith(b'\x1b\x5b\x42'):
+            #     self.data = self.data[:-3] + b'\x1b\x5b\x46'
+            #     payload = payload[:-3] + b'\x1b\x5b\x46'
+            #     log.msg('Attacker pressed up or down arrow to trace history command. Replaced with end.')
 
-            # PPS: Disable tab, so simply replace it with bell.
-            elif payload.endswith(b'\x09'):
-                self.data = self.data[:-1] + b'\x07'
-                payload = payload[:-1] + b'\x07'
-                log.msg('Attacker pressed tab. Replaced with bell.')
+            # # PPS: Disable tab, so simply replace it with bell.
+            # elif payload.endswith(b'\x09'):
+            #     self.data = self.data[:-1] + b'\x07'
+            #     payload = payload[:-1] + b'\x07'
+            #     log.msg('Attacker pressed tab. Replaced with bell.')
 
             channel["session"].parse_packet(parent, self.extract_string())
 
@@ -608,9 +609,10 @@ class SSH(base_protocol.BaseProtocol):
         # This restriction is NOT applied to response generator.
 
         # When the connection lost, attacker_info will be cleared.
+        #global kill_process
         while self.server.is_connected:
             # The timer for attacker command execution is started and timeout reached.
-            if self.last_prompt is not None and (datetime.now() - self.last_prompt).total_seconds() > 1000:#SSH.EXECUTION_TIMEOUT:
+            if (self.last_prompt is not None and (datetime.now() - self.last_prompt).total_seconds() > SSH.EXECUTION_TIMEOUT):
                 log.msg('Execution timeout is reached. Sending Ctrl+C to backend pool.')
 
                 payloads = response_generator.ResponseGenerator.generate_packets(b'\x03')
@@ -618,7 +620,7 @@ class SSH(base_protocol.BaseProtocol):
                     self.client.sendPacket(response_generator.ResponseGenerator.MESSAGE_NUM, payload)
 
                 #payloads = response_generator.ResponseGenerator.generate_packets(b'[PAM] Execution timeout or you do NOT have enough privilege.\r\n')
-                payloads = response_generator.ResponseGenerator.generate_packets(b'Process killed.\r\n')
+                payloads = response_generator.ResponseGenerator.generate_packets(b'Processes killed.\r\n')
                 for payload in payloads:
                     self.server.sendPacket(response_generator.ResponseGenerator.MESSAGE_NUM, payload)
 
