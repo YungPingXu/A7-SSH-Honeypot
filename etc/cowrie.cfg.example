@@ -244,7 +244,7 @@ guest_telnet_port = 23
 # it to a compatible machine listed by the command: 'qemu-system-x86_64 -machine help'
 guest_image_path = /home/user/Desktop/A7-SSH-Honeypot/cowrie-imgs/ubuntu22.04.qcow2
 guest_hypervisor = qemu
-guest_memory = 1024
+guest_memory = 2048
 guest_qemu_machine = pc-q35-bionic
 
 # =====================================
@@ -312,7 +312,7 @@ backend_telnet_port = 2023
 # =====================================
 
 # generic pool configurable settings
-pool_max_vms = 3
+pool_max_vms = 1
 pool_vm_unused_timeout = 86400
 
 # allow sharing guests between different attackers if no new VMs are available

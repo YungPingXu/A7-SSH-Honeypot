@@ -334,7 +334,7 @@ class EngageHandler:
         # Create new object for new client.
         else:
             model_filename = Path(__file__).parents[0] / 'model' / 'target_model'
-            state_dict = torch.load(model_filename, map_location=torch.device('cpu'))
+            state_dict = torch.load(model_filename, map_location=torch.device('cpu'), weights_only=True)
 
             environments = [CustomEnvironment(), DoubleDQN(), 0]
 

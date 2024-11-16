@@ -12,7 +12,7 @@ exit 0
 EOF
 systemctl restart rc-local
 iptables -t nat -A PREROUTING -i br0 -s 192.168.4.0/24 -p udp --dport 53 -j DNAT --to 8.8.8.8
-iptables -t nat -A POSTROUTING -o enp4s0 -s 192.168.4.0/24 -j MASQUERADE # remote: ens18, local:enp4s0
+iptables -t nat -A POSTROUTING -o ens18 -s 192.168.4.0/24 -j MASQUERADE # remote: ens18, local:enp4s0
 iptables-save > /etc/iptables/rules.v4
 cat >> /etc/dnsmasq.conf <<EOF
 interface=br0

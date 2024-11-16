@@ -2,7 +2,7 @@
 ip addr show dev br0
 sysctl net.ipv4.ip_forward
 sudo iptables -t nat -L
-Verify
+# Verify
 sudo mkdir /etc/qemu/
 sudo bash -c "echo 'allow all' >> /etc/qemu/bridge.conf"
 
