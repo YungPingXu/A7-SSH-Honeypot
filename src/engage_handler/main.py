@@ -26,7 +26,7 @@ from tracer import Tracer, LoggingType
 from action_matrix import ACTION_ID2NAME, ACTION_LEN, ACTIVITY_IDF2ID, ACTIVITY_IDF2NAME, ACTIVITY_LEN, MAPPING_ACTIVITY2ACTION
 
 tokenizer = AutoTokenizer.from_pretrained("jackaduma/SecBERT")
-cuda = torch.device('cuda')
+cuda = torch.device('cpu') # torch.device('cuda')
 
 
 SERVER_ADDRESS = '0.0.0.0'
@@ -155,8 +155,8 @@ class DoubleDQN:
         self.epsilon_min = epsilon_min
         self.batch_size = batch_size
 
-        self.policy_net = DQN(self.input_size, self.output_size).cuda()
-        self.target_net = DQN(self.input_size, self.output_size).cuda()
+        self.policy_net = DQN(self.input_size, self.output_size)#.cuda()
+        self.target_net = DQN(self.input_size, self.output_size)#.cuda()
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
@@ -334,7 +334,7 @@ class EngageHandler:
         # Create new object for new client.
         else:
             model_filename = Path(__file__).parents[0] / 'model' / 'target_model'
-            state_dict = torch.load(model_filename)
+            state_dict = torch.load(model_filename, map_location=torch.device('cpu'))
 
             environments = [CustomEnvironment(), DoubleDQN(), 0]
 
@@ -443,7 +443,7 @@ def state_to_tensor(state: Tuple[int, List[str], List[int]]) -> torch.Tensor:
     attribute_tensor = torch.tensor(embed_attributes(attributes), dtype=torch.float32)
     suggested_activities_tensor = torch.tensor(encode_suggested_activities(suggested_activities), dtype=torch.float32)
     
-    return torch.cat((login_state_tensor, attribute_tensor, suggested_activities_tensor)).cuda()
+    return torch.cat((login_state_tensor, attribute_tensor, suggested_activities_tensor))#.cuda()
     
 
 if __name__ == '__main__':
