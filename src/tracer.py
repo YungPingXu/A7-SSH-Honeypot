@@ -206,22 +206,22 @@ class Tracer:
     @staticmethod
     def validate_datetime() -> bool:
 
-        req = requests.get('http://just-the-time.appspot.com/')
+        # req = requests.get('http://just-the-time.appspot.com/')
 
-        if req.status_code == 200:
-            local_datetime = datetime.now()
-            internet_datetime = datetime.strptime(req.text.strip(), '%Y-%m-%d %H:%M:%S') + timedelta(hours=8)
-            diff = (internet_datetime - local_datetime).total_seconds()
+        # if req.status_code == 200:
+        #     local_datetime = datetime.now()
+        #     internet_datetime = datetime.strptime(req.text.strip(), '%Y-%m-%d %H:%M:%S') + timedelta(hours=8)
+        #     diff = (internet_datetime - local_datetime).total_seconds()
 
-            # The difference should be less than or equal to 5 seconds.
-            return diff <= 5
+        #     # The difference should be less than or equal to 5 seconds.
+        #     return diff <= 5
 
         return False
 
 
     def __init__(self, app_name: str) -> None:
 
-        assert Tracer.validate_datetime(), 'Please check your computer datetime/timezone setting.'
+        #assert Tracer.validate_datetime(), 'Please check your computer datetime/timezone setting.'
 
         self.app_name = app_name
         self.log_filename = str(Tracer.LOGGING_PATH / Path(f'{Tracer.current_datetime()}_{self.app_name}.log'))
