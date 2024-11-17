@@ -1212,10 +1212,13 @@ class ResponseGenerator:
         elif self.loginState_collect[attacker_id] != LoginState.TRY_LOGIN:
             if selected_action == 1:
                 self.action_login_add(attacker_id, attr)
+                response = commands[0]
             elif selected_action == 2:
                 self.action_login_remove(attacker_id, attr)
+                response = commands[0]
             elif selected_action == 3:
                 self.action_login_remove_all(attacker_id)
+                response = commands[0]
             elif selected_action == 4:
                 self.autoSudo_collect[attacker_id] = True
                 response = commands[0]
@@ -1263,7 +1266,6 @@ class ResponseGenerator:
 
         log.msg('[Post-Process] Completing task ...')
         self.logger.log('[Post-Process] Completing task ...', LoggingType.DEBUG)
-
         # Run command (don't need to wait for complete) and return control to cowrie.
         if type(response) is bytes:
             log.msg(f'Run command "{response}" and response the result to attacker.')
@@ -1285,13 +1287,13 @@ class ResponseGenerator:
             self.logger.log(f'Response plain text "{response}" to attacker directly.', LoggingType.DEBUG)
 
             if len(response) > 0:
-                if not response.endswith('\r\n'):
-                    response += '\r\n'
+                # if not response.endswith('\r\n'):
+                #    response += '\r\n'
 
                 self.send_packet_to(attacker_id, False, response)
 
             # Get prompt from backend.
-            backend_prompt = self.backend_prompt(attacker_id, True)
+            #backend_prompt = self.backend_prompt(attacker_id, True)
 
             log.msg(self.attacker_collect)
             log.msg(attacker_id)
@@ -1299,8 +1301,9 @@ class ResponseGenerator:
             self.attacker_collect.remove(attacker_id)
 
             # Send backend prompt back to attacker.
-            self.send_packet_to(attacker_id, False, backend_prompt)
-            print(f'Sent backend prompt "{backend_prompt}" back to attacker "{attacker_id}".')
+            #self.send_packet_to(attacker_id, False, backend_prompt)
+            #print(f'Sent backend prompt "{backend_prompt}" back to attacker "{attacker_id}".')
+            #self.send_packet_to(attacker_id, False, b'\r\n')
 
         # Lazy delete entries to return control to cowrie.
         if attacker_id in self.backendPacket_collect:

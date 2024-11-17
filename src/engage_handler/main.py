@@ -354,9 +354,11 @@ class EngageHandler:
 
             while self.keep_running and not environments[0].done:
                 action = environments[1].select_action(environments[0].current_state)
-                if action in (12, 13, 14):
+                if action in (8, 9, 10, 11, 12, 13, 14):
                     action = 4
-
+                if action == 7:
+                    action = 6
+                #action = 15
                 # DEBUG
                 # if len(PREDEFINED_ACTIONS[client_id]) > 0:
                 #     action = PREDEFINED_ACTIONS[client_id].pop(0)

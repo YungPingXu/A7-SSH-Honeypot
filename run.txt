@@ -3,6 +3,7 @@ cd ~/Desktop/wazuh-4.7.5-install
 sudo tar -O -xvf wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt
 
 2. 
+sudo qemu-system-x86_64 -name qvm0 -smbios type=0,uefi=on -enable-kvm -smp 2 -m 4096 -hda /home/user/qvm0.qcow2 -boot c -netdev bridge,br=br0,id=net0 -device e1000,netdev=net0,mac=52:54:00:12:43:00 -vnc 0.0.0.0:0 -cpu host
 sudo qemu-system-x86_64 -name qvm0 -smbios type=0,uefi=on -smp 2 -m 4096 -hda /home/user/qvm0.qcow2 -boot c -netdev bridge,br=br0,id=net0 -device e1000,netdev=net0,mac=52:54:00:12:43:00 -vnc 0.0.0.0:0
 # sudo qemu-system-x86_64 -name qvm1 -smbios type=0,uefi=on -smp 2 -m 4096 -hda /home/user/qvm1.qcow2 -boot c -netdev bridge,br=br0,id=net0 -device e1000,netdev=net0,mac=52:54:00:12:43:01 -vnc 0.0.0.0:1
 # sudo qemu-system-x86_64 -name qvm2 -smbios type=0,uefi=on -smp 2 -m 4096 -hda /home/user/qvm2.qcow2 -boot c -netdev bridge,br=br0,id=net0 -device e1000,netdev=net0,mac=52:54:00:12:43:02 -vnc 0.0.0.0:2
@@ -41,3 +42,6 @@ sudo /var/ossec/bin/manage_agents
 4.7.5
 sudo /var/ossec/bin/wazuh-control -j info
 https://127.0.0.1:9200/wazuh-alerts-4.x-*/_search
+
+scp -P 28006 root@140.113.24.232:/mnt/e/dump/vzdump-qemu-103-2024_11_17-20_29_55.vma.zst .
+qmrestore ./123.vma.zst vmid

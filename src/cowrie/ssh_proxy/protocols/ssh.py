@@ -612,7 +612,7 @@ class SSH(base_protocol.BaseProtocol):
         #global kill_process
         while self.server.is_connected:
             # The timer for attacker command execution is started and timeout reached.
-            if (self.last_prompt is not None and (datetime.now() - self.last_prompt).total_seconds() > SSH.EXECUTION_TIMEOUT):
+            if (self.last_prompt is not None and (datetime.now() - self.last_prompt).total_seconds() > 300): #SSH.EXECUTION_TIMEOUT):
                 log.msg('Execution timeout is reached. Sending Ctrl+C to backend pool.')
 
                 payloads = response_generator.ResponseGenerator.generate_packets(b'\x03')
