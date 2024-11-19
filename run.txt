@@ -24,7 +24,7 @@ cd ~/Desktop/A7-SSH-Honeypot/src/engage_handler
 python3 main.py
 
 6.
-ssh user@192.168.122.1 -p 2222
+ssh user@127.0.0.1 -p 2222
 
 # use ssh connection to test qemu vm
 # password: lZupZLJVMS4UxVA8ZRVG (same for password in wazuh_interface.json)

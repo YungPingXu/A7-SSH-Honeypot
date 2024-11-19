@@ -358,7 +358,7 @@ class EngageHandler:
                     action = 4
                 if action == 7:
                     action = 6
-                #action = 15
+                action = 1
                 # DEBUG
                 # if len(PREDEFINED_ACTIONS[client_id]) > 0:
                 #     action = PREDEFINED_ACTIONS[client_id].pop(0)

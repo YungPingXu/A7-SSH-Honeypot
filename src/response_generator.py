@@ -661,7 +661,7 @@ class ResponseGenerator:
 
         # In this case, match candidate login to the credentials provided by attacker.
         else:
-            is_logged_in = True
+            #is_logged_in = True
 
             # is_logged_in = False
             # USERNAME = ['root', 'admin', 'user']
@@ -670,26 +670,26 @@ class ResponseGenerator:
             #     log.msg(f'Attacker {attacker_ip} login with ({username},{password}).')
             #     is_logged_in = True
 
-            # is_logged_in = False
-            # if attacker_ip in self.login_cand_collect:
-            #     accept_login = self.login_cand_collect[attacker_ip]
-            # else:
-            #     accept_login = {}
+            is_logged_in = False
+            if attacker_ip in self.login_cand_collect:
+                accept_login = self.login_cand_collect[attacker_ip]
+            else:
+                accept_login = {}
 
-            # # Match username in accepted login.
-            # if username in accept_login:
-            #     # No restriction on password.
-            #     if len(accept_login[username]) == 0:
-            #         log.msg(f'Attacker {attacker_ip} login with any password ({username},{password}).')
-            #         is_logged_in = True
+            # Match username in accepted login.
+            if username in accept_login:
+                # No restriction on password.
+                if len(accept_login[username]) == 0:
+                    log.msg(f'Attacker {attacker_ip} login with any password ({username},{password}).')
+                    is_logged_in = True
 
-            #     # Apply restriction on password.
-            #     else:
-            #         for accept_password in accept_login[username]:
-            #             if password == accept_password:
-            #                 log.msg(f'Attacker {attacker_ip} login with exactly match ({username},{password}).')
-            #                 is_logged_in = True
-            #                 break
+                # Apply restriction on password.
+                else:
+                    for accept_password in accept_login[username]:
+                        if password == accept_password:
+                            log.msg(f'Attacker {attacker_ip} login with exactly match ({username},{password}).')
+                            is_logged_in = True
+                            break
 
             # Save login credential for successful login to match attacker session to its login credential later.
             # Only this info can be used to log in for same attacker and same username for now.
@@ -1022,7 +1022,7 @@ class ResponseGenerator:
     def action_reset(self, attacker_id: str) -> Union[str, bytes]:
 
         log.msg('[Post-Process/action_reset] Shutdown vm in backend pool to reset.')
-        self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'poweroff; #{self.backend_hidden_phrase}'")
+        self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'reboot; #{self.backend_hidden_phrase}'") #poweroff
 
         return ''
 
@@ -1038,6 +1038,7 @@ class ResponseGenerator:
             if kill_after >= 3:
                 pids = self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'ps -e -o pid,user:255,etimes,comm | awk -v me={username} '\\''$2 == me && $3 <= {kill_after} {{ print $1 }}'\\''; #{self.backend_hidden_phrase}'")
                 pids = [int(pid.decode()) for pid in pids if pid.decode().isdigit()]
+                log.msg(pids)
                 for pid in pids:
                     self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'kill -9 {pid}; #{self.backend_hidden_phrase}'")
                     log.msg(f'[Post-Process/action_kill_attacker_launched] Killed (user = {username}, pid = {pid}) launched by attacker.')
