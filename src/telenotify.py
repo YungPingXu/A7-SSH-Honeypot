@@ -2,8 +2,8 @@
 from pathlib import Path
 import json
 import requests
-
-
+import os
+from cowrie_base_path import COWRIE_BASE_PATH
 TELEGRAM_BOT_TOKEN = ''
 RECEIVER_CHAT_ID = ''
 
@@ -12,7 +12,7 @@ def read_config() -> None:
 
     global TELEGRAM_BOT_TOKEN, RECEIVER_CHAT_ID
 
-    with open(Path(__file__).parents[1] / 'etc/telenotify.json', 'r') as fin:
+    with open(Path(COWRIE_BASE_PATH) / Path('etc/telenotify.json'), 'r') as fin:
         config = json.load(fin)
 
     TELEGRAM_BOT_TOKEN = config['TELEGRAM_BOT_TOKEN']

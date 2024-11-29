@@ -271,14 +271,14 @@ Makes a Cowrie SSH/Telnet honeypot.
             create_endpoint_services(reactor, self.topService, listen_endpoints, f)
 
 
-cowrie_base_path = str(Path(__file__).parents[2])
-if cowrie_base_path not in sys.path:
-    print('Please make sure cowrie src directory is added to system path by setting environment variable PYTHONPATH.')
-    sys.exit(1)
+# cowrie_base_path = str(Path(__file__).parents[2])
+# if cowrie_base_path not in sys.path:
+#     print('Please make sure cowrie src directory is added to system path by setting environment variable PYTHONPATH.')
+#     sys.exit(1)
 
-elif 'COWRIE_BASE_PATH' not in os.environ:
-    print('Please set environment variable COWRIE_BASE_PATH first.')
-    sys.exit(1)
+# elif 'COWRIE_BASE_PATH' not in os.environ:
+#     print('Please set environment variable COWRIE_BASE_PATH first.')
+#     sys.exit(1)
 
 # Now construct an object which *provides* the relevant interfaces
 # The name of this variable is irrelevant, as long as there is *some*

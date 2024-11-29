@@ -45,3 +45,15 @@ https://127.0.0.1:9200/wazuh-alerts-4.x-*/_search
 
 scp -P 28006 root@140.113.24.232:/mnt/e/dump/vzdump-qemu-103-2024_11_17-20_29_55.vma.zst .
 qmrestore ./123.vma.zst vmid
+
+ssh root@192.168.4.58
+lZupZLJVMS4UxVA8ZRVG
+
+source ~/Desktop/venv/bin/activate
+cd ~/Desktop/A7-SSH-Honeypot/src/cve2attack_attacker
+python3 main.py
+
+iptables -A INPUT -s 8.8.8.8 -j DROP
+
+iptables -L INPUT
+iptables -F INPUT

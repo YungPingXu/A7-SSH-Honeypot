@@ -16,7 +16,7 @@ from paramiko import SSHClient
 from paramiko.channel import Channel
 from twisted.python import log
 import os
-
+from cowrie_base_path import COWRIE_BASE_PATH
 urllib3.disable_warnings()
 
 
@@ -60,7 +60,7 @@ class WazuhInterface:
 
     def read_config(self) -> None:
 
-        with open(Path(__file__).parents[1] / 'etc/wazuh_interface.json', 'r') as fin:
+        with open(Path(COWRIE_BASE_PATH) / Path('etc/wazuh_interface.json'), 'r') as fin:
             config = json.load(fin)
 
         self.target['ip'] = config['target']['ip']
@@ -540,7 +540,7 @@ class WazuhInterface:
     def vm_install_wazuhAgent(self, vm_id: int) -> None:
 
         if 0 <= vm_id < self.vm_size:
-            with open(Path(__file__).parents[1] / 'etc/wazuh_interface.json', 'r') as fin:
+            with open(Path(COWRIE_BASE_PATH) / Path('etc/wazuh_interface.json'), 'r') as fin:
                 config = json.load(fin)
 
             # Make sure there is no double quote in the commands.

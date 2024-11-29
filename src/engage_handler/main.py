@@ -17,8 +17,10 @@ import random
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from transformers import AutoTokenizer
+from twisted.python import log
 import sys
 sys.path.append('..')
 import training
@@ -73,6 +75,7 @@ class CustomEnvironment:
         self.current_state = self.reset()
         self.done = False
         self.step_counter = 0
+        
 
 
     def step(self, action: int, state: Tuple[int, List[str], List[int]]) -> float:
@@ -145,7 +148,7 @@ class DQN(nn.Module):
 class DoubleDQN:
     transition = namedtuple('transition', ('state', 'action', 'reward', 'next_state', 'done'))
     
-    def __init__(self, lr=0.001, gamma=0.99, epsilon=1.0, epsilon_decay=0.999, epsilon_min=0.01, batch_size=32, buffer_size=100):
+    def __init__(self, lr=0.001, gamma=0.99, epsilon=0.1, epsilon_decay=0.999, epsilon_min=0.01, batch_size=32, buffer_size=100):
         
         self.input_size = 3017
         self.output_size = 16
@@ -167,13 +170,23 @@ class DoubleDQN:
 
 
     def select_action(self, state: Tuple[int, List[str], List[int]]) -> int:
-        
-        if random.random() < self.epsilon:
-            return random.randint(0, self.output_size - 1) + 1
-        
         with torch.no_grad():
             q_values = self.policy_net(state_to_tensor(state))
-            return q_values.argmax().item() + 1
+            #prob = F.softmax(q_values, dim=0)
+            #action = torch.multinomial(prob, 1).item()
+            #print(prob)
+            print(q_values)
+            action = q_values.argmax().item() + 1
+            #print(action)
+        
+        # if random.random() < self.epsilon:
+        #     return random.randint(0, self.output_size - 1) + 1
+        
+        action = 1
+            
+        return action
+        
+        
 
 
     def store_transition(self, state: Tuple[int, List[str], List[int]], action: int, reward: float, next_state: Tuple[int, List[str], List[int]], done: bool) -> None:
@@ -239,6 +252,8 @@ class EngageHandler:
         self.clients: List[Thread] = []
         self.buffer: bytes = b''
         self.environments: Union[None, list] = None
+        # self.fixed_state = [4,6,4,6,4] #[4,4,1,4,5,4,4,7,4,16,16]
+        # self.cnt = 0
 
         if IS_TRAINING:
             self.environments = [CustomEnvironment(), DoubleDQN(), 0]
@@ -354,11 +369,10 @@ class EngageHandler:
 
             while self.keep_running and not environments[0].done:
                 action = environments[1].select_action(environments[0].current_state)
-                if action in (8, 9, 10, 11, 12, 13, 14):
-                    action = 4
-                if action == 7:
-                    action = 6
-                action = 1
+                # action = self.fixed_state[self.cnt % len(self.fixed_state)]
+                # self.cnt += 1    
+                #action=16
+                #action = 7
                 # DEBUG
                 # if len(PREDEFINED_ACTIONS[client_id]) > 0:
                 #     action = PREDEFINED_ACTIONS[client_id].pop(0)

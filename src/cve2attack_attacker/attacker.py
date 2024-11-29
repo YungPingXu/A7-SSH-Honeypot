@@ -1,4 +1,3 @@
-
 from typing import Tuple, List, Dict, Union
 import re
 from time import sleep
@@ -11,12 +10,14 @@ from paramiko import SSHClient, Channel, AutoAddPolicy
 from paramiko.channel import ChannelFile
 from paramiko.ssh_exception import NoValidConnectionsError, AuthenticationException, SSHException
 
+import sys
+sys.path.append('..')
 import response_generator
 from tracer import Tracer, LoggingType
 from cve2attack import TACTIC_ID2NAME_MAPPING
 from atomic import query_available_tests, test_has_argument, query_test_argument_default, sample_test_by_guid
 from response_generator import ResponseGenerator
-from telenotify import send_text
+#from telenotify import send_text
 
 
 USERNAME_CANDIDATES = []
@@ -35,13 +36,13 @@ def load_authentication_candidates() -> None:
 
 
 class Attacker:
-    SSH_HOST = '192.168.3.2'
+    SSH_HOST = '192.168.122.1'
     SSH_PORT = 2222
     EXECUTION_TIMEOUT = 30
     MIN_RETRY_TIMES = 3
     MAX_RETRY_TIMES = 5
     TACTIC_REPEAT = 3
-    COWRIE_BOOT_TIME = 300
+    COWRIE_BOOT_TIME = 15#300
     COWRIE_RETRY_TIME = COWRIE_BOOT_TIME / 3
 
     @staticmethod
@@ -134,7 +135,7 @@ class Attacker:
                     self.logger.log(f'Failed to connect to ssh server due to unexpected error.', LoggingType.FATAL)
                     self.close_connection()
 
-                    send_text(f'Failed to connect to ssh server due to unexpected error.')
+                    #send_text(f'Failed to connect to ssh server due to unexpected error.')
                     sleep(Attacker.COWRIE_RETRY_TIME)
 
                 except EOFError:
@@ -142,7 +143,7 @@ class Attacker:
                     self.logger.log(f'Failed to connect to ssh server due to EOF error.', LoggingType.FATAL)
                     self.close_connection()
 
-                    send_text(f'Failed to connect to ssh server due to EOF error.')
+                    #send_text(f'Failed to connect to ssh server due to EOF error.')
                     sleep(Attacker.COWRIE_RETRY_TIME)
 
                 except NoValidConnectionsError:
@@ -150,7 +151,7 @@ class Attacker:
                     self.logger.log(f'Failed to connect to ssh on {Attacker.SSH_HOST}:{Attacker.SSH_PORT}. Please check these are correct.', LoggingType.FATAL)
                     self.close_connection()
 
-                    send_text(f'Failed to connect to ssh on {Attacker.SSH_HOST}:{Attacker.SSH_PORT}.')
+                    #send_text(f'Failed to connect to ssh on {Attacker.SSH_HOST}:{Attacker.SSH_PORT}.')
                     sleep(Attacker.COWRIE_RETRY_TIME)
 
                 else:
@@ -198,72 +199,72 @@ class Attacker:
     def execute_command__(self, command: str) -> str:
 
         if self.is_client_connected():
+            #try:
+            print(f'Execute command "{command}".')
+            self.logger.log(f'Execute command "{command}".', LoggingType.DEBUG)
+
+            self.client_io[0].write(f'{command}\n'.encode())
+            self.client_io[0].flush()
+
+            # except OSError:
+            #     print('Executed command failed.')
+            #     self.logger.log('Executed command failed.', LoggingType.FAILED)
+            #     self.close_connection()
+            #     return ''
+
+            #else:
+            buffer = ''
+
             try:
-                print(f'Execute command "{command}".')
-                self.logger.log(f'Execute command "{command}".', LoggingType.DEBUG)
+                while self.is_client_connected():
+                    line = self.client_io[1].channel.recv(1024)
+                    buffer += line.decode()
 
-                self.client_io[0].write(f'{command}\n'.encode())
-                self.client_io[0].flush()
+                    if len(command) > 0 and command in buffer:
+                        buffer = buffer[buffer.find(command)+len(command):]
+                        command = ''
 
-            except OSError:
-                print('Executed command failed.')
-                self.logger.log('Executed command failed.', LoggingType.FAILED)
+                    if buffer.endswith(f'[sudo] password for {self.username}: '):
+                        self.client_io[0].channel.sendall(self.password.encode() + b'\n')
+                        print('Password sent for sudo.')
+                        self.logger.log('Password sent for sudo.', LoggingType.DEBUG)
+
+                    if ResponseGenerator.has_prompt(buffer):
+                        print('Executed command completed.')
+                        self.logger.log('Executed command completed.')
+
+                        for prompt in response_generator.ResponseGenerator.filter_prompt(buffer):
+                            pos = buffer.find(prompt.decode())
+
+                            if pos != -1:
+                                buffer = buffer[:pos]
+
+                        buffer = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]').sub('', buffer).replace('\x1b[?', '').replace('\b', '').replace('\r', '').strip()
+                        buffer_format = buffer.encode()
+
+                        print(f'Exec result: {buffer_format}')
+                        self.logger.log(f'Exec result: {buffer_format}', LoggingType.DEBUG)
+
+                        return buffer
+
+                    sleep(0.1)
+
+                print('Executed command failed. (client disconnected)')
+                self.logger.log('Executed command failed. (client disconnected)', LoggingType.FAILED)
                 self.close_connection()
                 return ''
 
-            else:
-                buffer = ''
+            except OSError:
+                print('Executed command failed. (OSError)')
+                self.logger.log('Executed command failed. (OSError)', LoggingType.FAILED)
+                self.close_connection()
+                return ''
 
-                try:
-                    while self.is_client_connected():
-                        line = self.client_io[1].channel.recv(1024)
-                        buffer += line.decode()
-
-                        if len(command) > 0 and command in buffer:
-                            buffer = buffer[buffer.find(command)+len(command):]
-                            command = ''
-
-                        if buffer.endswith(f'[sudo] password for {self.username}: '):
-                            self.client_io[0].channel.sendall(self.password.encode() + b'\n')
-                            print('Password sent for sudo.')
-                            self.logger.log('Password sent for sudo.', LoggingType.DEBUG)
-
-                        if ResponseGenerator.has_prompt(buffer):
-                            print('Executed command completed.')
-                            self.logger.log('Executed command completed.')
-
-                            for prompt in response_generator.ResponseGenerator.filter_prompt(buffer):
-                                pos = buffer.find(prompt.decode())
-
-                                if pos != -1:
-                                    buffer = buffer[:pos]
-
-                            buffer = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]').sub('', buffer).replace('\x1b[?', '').replace('\b', '').replace('\r', '').strip()
-                            buffer_format = buffer.encode()
-
-                            print(f'Exec result: {buffer_format}')
-                            self.logger.log(f'Exec result: {buffer_format}', LoggingType.DEBUG)
-
-                            return buffer
-
-                        sleep(0.1)
-
-                    print('Executed command failed. (client disconnected)')
-                    self.logger.log('Executed command failed. (client disconnected)', LoggingType.FAILED)
-                    self.close_connection()
-                    return ''
-
-                except OSError:
-                    print('Executed command failed. (OSError)')
-                    self.logger.log('Executed command failed. (OSError)', LoggingType.FAILED)
-                    self.close_connection()
-                    return ''
-
-                except SSHException:
-                    print('Executed command failed. (SSHException)')
-                    self.logger.log('Executed command failed. (SSHException)', LoggingType.FATAL)
-                    self.close_connection()
-                    return ''
+            except SSHException:
+                print('Executed command failed. (SSHException)')
+                self.logger.log('Executed command failed. (SSHException)', LoggingType.FATAL)
+                self.close_connection()
+                return ''
 
 
     def execute_command_(self, command: str, result: list, exit_code: bool = True) -> None:

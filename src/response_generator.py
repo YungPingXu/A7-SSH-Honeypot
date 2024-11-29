@@ -12,7 +12,8 @@ import re
 from pathlib import Path
 import socket
 from threading import Thread
-
+import os
+from cowrie_base_path import COWRIE_BASE_PATH
 from twisted.python import log
 from cowrie.ssh_proxy.server_transport import FrontendSSHTransport
 from cowrie.ssh_proxy.client_transport import BackendSSHTransport
@@ -249,7 +250,7 @@ class ResponseGenerator:
 
     def read_config(self) -> None:
 
-        with open(Path(__file__).parents[1] / 'etc/response_generator.json', 'r') as fin:
+        with open(Path(COWRIE_BASE_PATH) / Path('etc/response_generator.json'), 'r') as fin:
             config = json.load(fin)
 
         self.phrase_replace['lifetime'] = int(config['phrase_replace']['lifetime'])
@@ -671,6 +672,7 @@ class ResponseGenerator:
             #     is_logged_in = True
 
             is_logged_in = False
+            log.msg(self.login_cand_collect)
             if attacker_ip in self.login_cand_collect:
                 accept_login = self.login_cand_collect[attacker_ip]
             else:
@@ -734,6 +736,7 @@ class ResponseGenerator:
         if attacker_ip not in self.login_cand_collect:
             self.login_cand_collect[attacker_ip] = {}
 
+        # username
         if attr[3] not in self.login_cand_collect[attacker_ip]:
             self.login_cand_collect[attacker_ip][attr[3]] = []
 
@@ -746,6 +749,10 @@ class ResponseGenerator:
             if len(self.login_cand_collect[attacker_ip][attr[3]]) > 0:
                 selected_password = COMMON_PASSWORDS[randint(0, len(COMMON_PASSWORDS) - 1)]
                 self.login_cand_collect[attacker_ip][attr[3]].append(selected_password)
+
+        # if len(self.login_cand_collect[attacker_ip][attr[3]]) == 0:
+        #     selected_password = COMMON_PASSWORDS[randint(0, len(COMMON_PASSWORDS) - 1)]
+        #     self.login_cand_collect[attacker_ip][attr[3]].append(selected_password)
 
         log.msg(f'[Post-Process/action_login_add] Accepted login for {attacker_ip} is updated to {self.login_cand_collect[attacker_ip]}.')
 
@@ -797,45 +804,55 @@ class ResponseGenerator:
 
         return response
 
-
-    # Action ID 6
     def action_network_block(self, attacker_id: str, attacker_cmd: bytes, attr: List[str]) -> Union[str, bytes]:
-
-        attacker_ip = attacker_id.split(':')[0]
-        src_ip = self.query_backend_ip(attacker_id)
-        due = self.phrase_replace_due()
-
-        # For domain attr.
-        if attr[6] == 'localhost':
-            dst_ip = src_ip
+        if attr[6] == 'localhost' and attr[7] != '127.0.0.1':
+            destination = attr[7]
+        elif attr[6] != 'localhost':
+            destination = attr[6]
         else:
-            dst_ip = attr[6]
-
-        if len(attr[8]) > 0:
-            blocker = NetworkBlocker(src_ip, dst_ip, dst_port=int(attr[8]), due=due)
-        else:
-            blocker = NetworkBlocker(src_ip, dst_ip, due=due)
-
-        self.phraseReplace_collect[attacker_id].append((dst_ip.encode(), src_ip.encode(), due))
-        self.iptables_applyer.sendall(blocker.serialize())
-        log.msg(f'[Post-Process/action_network_block/domain] Blocked traffics from {src_ip} to {dst_ip}:{attr[8]} .')
-
-        # For ip attr.
-        if attr[7] == '127.0.0.1':
-            dst_ip = src_ip
-        else:
-            dst_ip = attr[7]
-
-        if len(attr[8]) > 0:
-            blocker = NetworkBlocker(src_ip, dst_ip, dst_port=int(attr[8]), due=due)
-        else:
-            blocker = NetworkBlocker(src_ip, dst_ip, due=due)
-
-        self.phraseReplace_collect[attacker_id].append((dst_ip.encode(), src_ip.encode(), due))
-        self.iptables_applyer.sendall(blocker.serialize())
-        log.msg(f'[Post-Process/action_network_block/ip] Blocked traffics from {src_ip} to {dst_ip}:{attr[8]} .')
-
+            return attacker_cmd
+        log.msg(f'[Post-Process/action_network_block/domain] Blocked traffics for {destination}.')
+        self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'iptables -A INPUT -s {destination} -j DROP; #{self.backend_hidden_phrase}'")
         return attacker_cmd
+    # # Action ID 6
+    # def action_network_block(self, attacker_id: str, attacker_cmd: bytes, attr: List[str]) -> Union[str, bytes]:
+
+    #     attacker_ip = attacker_id.split(':')[0]
+    #     src_ip = self.query_backend_ip(attacker_id)
+    #     due = self.phrase_replace_due()
+
+    #     # For domain attr.
+    #     if attr[6] == 'localhost':
+    #         dst_ip = src_ip
+    #     else:
+    #         dst_ip = attr[6]
+        
+    #     if len(attr[8]) > 0:
+    #         blocker = NetworkBlocker(src_ip, dst_ip, dst_port=int(attr[8]), due=due)
+    #     else:
+    #         blocker = NetworkBlocker(src_ip, dst_ip, due=due)
+
+    #     self.phraseReplace_collect[attacker_id].append((dst_ip.encode(), src_ip.encode(), due))
+    #     self.iptables_applyer.sendall(blocker.serialize())
+    #     log.msg(f'[Post-Process/action_network_block/domain] Blocked traffics from {src_ip} to {dst_ip}:{attr[8]} .')
+
+    #     # For ip attr.
+    #     if attr[7] == '127.0.0.1':
+    #         dst_ip = src_ip
+    #     else:
+    #         dst_ip = attr[7]
+
+    #     log.msg(dst_ip)
+    #     if len(attr[8]) > 0:
+    #         blocker = NetworkBlocker(src_ip, dst_ip, dst_port=int(attr[8]), due=due)
+    #     else:
+    #         blocker = NetworkBlocker(src_ip, dst_ip, due=due)
+
+    #     self.phraseReplace_collect[attacker_id].append((dst_ip.encode(), src_ip.encode(), due))
+    #     self.iptables_applyer.sendall(blocker.serialize())
+    #     log.msg(f'[Post-Process/action_network_block/ip] Blocked traffics from {src_ip} to {dst_ip}:{attr[8]} .')
+
+    #     return attacker_cmd
 
 
     # Action ID 7
@@ -961,61 +978,61 @@ class ResponseGenerator:
         return content
 
 
-    # # Action ID 12
-    # def action_stuff(self, attacker_cmd: bytes) -> Union[str, bytes]:
+    # Action ID 12
+    def action_stuff(self, attacker_cmd: bytes) -> Union[str, bytes]:
 
-    #     response = b'for ((;;)); do bash -c ' + quote(attacker_cmd.decode()).encode() + b'; done'
-    #     log.msg('[Post-Process/action_stuff] Stuff repeated and endless output back.')
+        response = b'for ((;;)); do bash -c ' + quote(attacker_cmd.decode()).encode() + b'; done'
+        log.msg('[Post-Process/action_stuff] Stuff repeated and endless output back.')
 
-    #     return response
-
-
-    # # Action ID 13
-    # def action_leak_info(self, attacker_id: str, attacker_cmd: bytes) -> Union[str, bytes]:
-
-    #     # Fake login record.
-    #     username = self.get_attacker_already_login(attacker_id)[0]
-    #     ip = self.pick_from_backendPool(self.query_backend_ip(attacker_id))[1]
-    #     port = randint(50000, 60000)
-    #     records = self.run_command_in_backend(attacker_id, f"cat /var/log/auth.log | grep --color=never 'Accepted password'")
-
-    #     if len(ip) > 0:
-    #         if len(records) == 0:
-    #             record = datetime.now().strftime('%b %d %H:%M:%S') + f' localhost sshd[{randint(1000, 100000)}]: Accepted password for username from 127.0.0.1 port 1234 ssh2'
-    #         else:
-    #             record = records[0].decode()
-
-    #         record = re.sub(r'for [a-z0-9.-_]+', f'for {username}', record)
-    #         record = re.sub(r'from [0-9.]+', f'from {ip}', record)
-    #         record = re.sub(r'port [0-9]+', f'port {port}', record)
-
-    #         log.msg(f'[Post-Process/action_leakInfo] Add a login record "{record}" in /var/log/auth.log file.')
-    #         self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c \"echo '{record}' >> /var/log/auth.log; #{self.backend_hidden_phrase}\"")
-
-    #     else:
-    #         log.msg('[Post-Process/action_leakInfo] No fake ip available.')
-
-    #     return attacker_cmd
+        return response
 
 
-    # # Action ID 14
-    # def action_send_phishing_email(self, attacker_id: str, attacker_cmd: bytes) -> Union[str, bytes]:
+    # Action ID 13
+    def action_leak_info(self, attacker_id: str, attacker_cmd: bytes) -> Union[str, bytes]:
 
-    #     backend_ip = self.query_backend_ip(attacker_id)
-    #     email_domain = backend_ip.replace('.', '-') + '.local'
-    #     sender = self.get_attacker_already_login(attacker_id)[0] + '@' + email_domain
-    #     receiver = COMMON_USERNAMES[randint(0, len(COMMON_USERNAMES) - 1)] + '@' + email_domain
-    #     subject = f'[Warn] Security event on vserver {backend_ip}'
-    #     content = ''.join((f'Several security events occurred on vserver internal-ip={backend_ip} !\n'
-    #                        f'Please login and check running process or system log.\n'
-    #                        f'Check this: "http://{backend_ip}/security/admin".\n',
-    #                        f' - From DEFENDER v2.1.0'))
-    #     send_cmd = f"echo {quote(content)} | mail -s {quote(subject)} -a 'From: {sender}' '{receiver}'"
+        # Fake login record.
+        username = self.get_attacker_already_login(attacker_id)[0]
+        ip = self.pick_from_backendPool(self.query_backend_ip(attacker_id))[1]
+        port = randint(50000, 60000)
+        records = self.run_command_in_backend(attacker_id, f"cat /var/log/auth.log | grep --color=never 'Accepted password'")
 
-    #     log.msg(f'[Post-Process/action_send_phishing_email] Send phishing e-mail with command "{send_cmd}".')
-    #     self.run_command_in_backend(attacker_id, send_cmd)
+        if len(ip) > 0:
+            if len(records) == 0:
+                record = datetime.now().strftime('%b %d %H:%M:%S') + f' localhost sshd[{randint(1000, 100000)}]: Accepted password for username from 127.0.0.1 port 1234 ssh2'
+            else:
+                record = records[0].decode()
 
-    #     return attacker_cmd
+            record = re.sub(r'for [a-z0-9.-_]+', f'for {username}', record)
+            record = re.sub(r'from [0-9.]+', f'from {ip}', record)
+            record = re.sub(r'port [0-9]+', f'port {port}', record)
+
+            log.msg(f'[Post-Process/action_leakInfo] Add a login record "{record}" in /var/log/auth.log file.')
+            self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c \"echo '{record}' >> /var/log/auth.log; #{self.backend_hidden_phrase}\"")
+
+        else:
+            log.msg('[Post-Process/action_leakInfo] No fake ip available.')
+
+        return attacker_cmd
+
+
+    # Action ID 14
+    def action_send_phishing_email(self, attacker_id: str, attacker_cmd: bytes) -> Union[str, bytes]:
+
+        backend_ip = self.query_backend_ip(attacker_id)
+        email_domain = backend_ip.replace('.', '-') + '.local'
+        sender = self.get_attacker_already_login(attacker_id)[0] + '@' + email_domain
+        receiver = COMMON_USERNAMES[randint(0, len(COMMON_USERNAMES) - 1)] + '@' + email_domain
+        subject = f'[Warn] Security event on vserver {backend_ip}'
+        content = ''.join((f'Several security events occurred on vserver internal-ip={backend_ip} !\n'
+                           f'Please login and check running process or system log.\n'
+                           f'Check this: "http://{backend_ip}/security/admin".\n',
+                           f' - From DEFENDER v2.1.0'))
+        send_cmd = f"echo {quote(content)} | mail -s {quote(subject)} -a 'From: {sender}' '{receiver}'"
+
+        log.msg(f'[Post-Process/action_send_phishing_email] Send phishing e-mail with command "{send_cmd}".')
+        self.run_command_in_backend(attacker_id, send_cmd)
+
+        return attacker_cmd
 
 
     # Action ID 15
@@ -1043,8 +1060,12 @@ class ResponseGenerator:
                     self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'kill -9 {pid}; #{self.backend_hidden_phrase}'")
                     log.msg(f'[Post-Process/action_kill_attacker_launched] Killed (user = {username}, pid = {pid}) launched by attacker.')
 
-        return attacker_cmd
+        return 'Processes killed.\r\n' #attacker_cmd
 
+    def action_degrade_network_speed(self, attacker_id: str, attacker_cmd: bytes) -> Union[str, bytes]:
+
+        self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'wondershaper ens3 102400 512000; #{self.backend_hidden_phrase}'")
+        return attacker_cmd
 
     def firstExec_until_now(self, attacker_id: str) -> int:
 
@@ -1183,10 +1204,10 @@ class ResponseGenerator:
             if len(responses) > 0 and responses[0].decode().isdigit():
                 uid = int(responses[0].decode())
 
-                if uid == 0:
-                    self.loginState_collect[attacker_id] = LoginState.ROOT_USER
-                    log.msg(f'Login state updated to "{self.loginState_collect[attacker_id]}".')
-                    self.logger.log(f'Login state updated to "{self.loginState_collect[attacker_id]}".')
+                #if uid == 0:
+                self.loginState_collect[attacker_id] = LoginState.ROOT_USER
+                log.msg(f'Login state updated to "{self.loginState_collect[attacker_id]}".')
+                self.logger.log(f'Login state updated to "{self.loginState_collect[attacker_id]}".')
             else:
                 log.err('Failed to update login state by command $(id -u).')
                 self.logger.log('Failed to update login state by command $(id -u).', LoggingType.FAILED)
@@ -1199,7 +1220,7 @@ class ResponseGenerator:
         response = ''
 
         self.logger.log('[Post-Process] Setting ...', LoggingType.DEBUG)
-
+        self.logger.log(str(isLogin))
         # Only do this when (attacker try to log in) and (engage handler selects login related action).
         if self.loginState_collect[attacker_id] == LoginState.TRY_LOGIN and 1 <= selected_action <= 3:
             if selected_action == 1:
@@ -1211,6 +1232,34 @@ class ResponseGenerator:
 
         # Only do this when (attacker is logged in).
         elif self.loginState_collect[attacker_id] != LoginState.TRY_LOGIN:
+            # self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'wondershaper clear ens3; #{self.backend_hidden_phrase}'")
+            # self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'iptables -F INPUT; #{self.backend_hidden_phrase}'")
+            # if selected_action == 1:
+            #     self.action_login_add(attacker_id, attr)
+            #     response = commands[0]
+            # elif selected_action in (2, 3):
+            #     self.autoSudo_collect[attacker_id] = True
+            #     response = commands[0]
+            # elif selected_action == 4:
+            #     response = self.action_block_access(attr)
+            # elif selected_action == 5:
+            #     response = self.action_network_block(attacker_id, commands[0], attr)
+            # elif selected_action == 6:
+            #     response = self.action_degrade_network_speed(attacker_id, commands[0])
+            # elif selected_action == 7:
+            #     response = self.action_replace_str(commands[0], attr)
+            # elif selected_action == 8:
+            #     self.respFilter_collect[attacker_id] = (self.action_replace_system_str_, ())
+            #     response = commands[0]
+            # elif selected_action == 9:
+            #     self.respFilter_collect[attacker_id] = (self.action_version_variation_, ())
+            #     response = commands[0]
+            # elif selected_action == 10:
+            #     self.respFilter_collect[attacker_id] = (self.action_show_part_output_, (attacker_id, attr))
+            #     response = commands[0]
+            # elif selected_action == 11:
+            #     response = self.action_kill_attacker_launched(attacker_id, commands[0])
+
             if selected_action == 1:
                 self.action_login_add(attacker_id, attr)
                 response = commands[0]
@@ -1228,7 +1277,8 @@ class ResponseGenerator:
             elif selected_action == 6:
                 response = self.action_network_block(attacker_id, commands[0], attr)
             elif selected_action == 7:
-                response = self.action_network_forward(attacker_id, commands[0], attr)
+                #response = self.action_network_forward(attacker_id, commands[0], attr)
+                response = self.action_degrade_network_speed(attacker_id, commands[0])
             elif selected_action == 8:
                 response = self.action_replace_str(commands[0], attr)
             elif selected_action == 9:
@@ -1260,7 +1310,7 @@ class ResponseGenerator:
         if isLogin:
             lazy_return.append(True)
         else:
-            self.complete_task(attacker_id, response)
+            self.complete_task(attacker_id, response)                
 
 
     def complete_task(self, attacker_id: str, response: Union[str, bytes]) -> None:
@@ -1535,7 +1585,7 @@ def load_common_phrase() -> None:
     global COMMON_EXEC, COMMON_USERNAMES, COMMON_PASSWORDS
 
     # From Ubuntu 22.04 /usr/bin
-    with open(Path(__file__).parents[1] / 'share/cowrie/response_generator/exec.txt', 'r') as fin:
+    with open(Path(COWRIE_BASE_PATH) / Path('share/cowrie/response_generator/exec.txt'), 'r') as fin:
         execs = fin.readlines()
 
     execs = [e.strip() for e in execs]
@@ -1546,7 +1596,7 @@ def load_common_phrase() -> None:
 
 
     # From https://github.com/jeanphorn/wordlist/blob/master/usernames.txt
-    with open(Path(__file__).parents[1] / 'share/cowrie/response_generator/usernames.txt', 'r') as fin:
+    with open(Path(COWRIE_BASE_PATH) / Path('share/cowrie/response_generator/usernames.txt'), 'r') as fin:
         usernames = fin.readlines()
 
     # Only preserve len(username) >= 3 .
@@ -1557,7 +1607,7 @@ def load_common_phrase() -> None:
     COMMON_USERNAMES = tuple(list(COMMON_USERNAMES) + usernames)
 
 
-    with open(Path(__file__).parents[1] / 'share/cowrie/response_generator/rockyou.txt', 'r') as fin:
+    with open(Path(COWRIE_BASE_PATH) / Path('share/cowrie/response_generator/rockyou.txt'), 'r') as fin:
         passwords = fin.readlines()
 
     passwords = [password.strip() for password in passwords]

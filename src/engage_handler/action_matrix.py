@@ -5,6 +5,19 @@ import json
 
 NUMBER_CIRCLE = ['', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳']
 
+# ACTION_ID2NAME = ['',
+#                   'Add a weak password for the user.',
+#                   'Change password of the user with another weak password.',
+#                   'Allow command execution and return output normally.',
+#                   'Block command execution and return permission denied string.',
+#                   'Block the access of network operation for the IP or domain.',
+#                   'Degrade the network speed when the attacker downloads or exfiltrates data.',
+#                   'Replace specific string in the command and allow command execution.',
+#                   'Replace system-related string from the executed command.',
+#                   'Output the executed command normally with some version variation.',
+#                   'Show part of executed command only.',
+#                   'Reset the system to original state.',
+#                   'Kill processes launched by the attacker.']
 ACTION_ID2NAME = ['',
                   'Add a weak password for specific user.',
                   'Remove a password for specific user.',

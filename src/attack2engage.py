@@ -2,15 +2,15 @@
 from typing import List, Callable
 from pathlib import Path
 import csv
-
+import os
+from cowrie_base_path import COWRIE_BASE_PATH
 
 ACTIVITY_ID2NAME_MAPPING = {}
 TECHNIQUE2ACTIVITIES_MAPPING = {}
 
 
 def load_mapping() -> None:
-
-    with open(Path(__file__).parents[1] / 'share/cowrie/engage_interface/activity.csv', 'r') as fin:
+    with open(Path(COWRIE_BASE_PATH) / Path('share/cowrie/engage_interface/activity.csv'), 'r') as fin:
         reader = csv.reader(fin)
 
         # Skip header.
@@ -19,7 +19,7 @@ def load_mapping() -> None:
         for row in reader:
             ACTIVITY_ID2NAME_MAPPING[row[0]] = row[1]
 
-    with open(Path(__file__).parents[1] / 'share/cowrie/engage_interface/attack2engage.csv', 'r') as fin:
+    with open(Path(COWRIE_BASE_PATH) / Path('share/cowrie/engage_interface/attack2engage.csv'), 'r') as fin:
         reader = csv.reader(fin)
 
         # Skip header.

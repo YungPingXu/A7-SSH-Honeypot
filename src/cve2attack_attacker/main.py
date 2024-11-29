@@ -5,7 +5,7 @@ from time import sleep
 from cve2attack import read_cve2attack
 from attacker import Attacker
 import training
-from telenotify import send_text
+#from telenotify import send_text
 
 
 # Run cve.py to get all SSH related CVEs.
@@ -13,7 +13,7 @@ from telenotify import send_text
 # This script runs attacks.
 
 
-IS_INTERACTIVE = False
+IS_INTERACTIVE = True
 IS_TRAINING = training.IS_TRAINING
 RUNTIME_CHT_STR = {True: '訓練', False: '測試'}[IS_TRAINING]
 SPLIT_RUN = 0
@@ -73,7 +73,7 @@ if __name__ == '__main__':
             print('Attacker is run in TESTING mode.')
             attacks = read_cve2attack('output/ssh_cves_labeled_filtered_test.csv')
 
-        send_text(f'RL {RUNTIME_CHT_STR}已開始')
+        #send_text(f'RL {RUNTIME_CHT_STR}已開始')
 
         for i, attack in enumerate(attacks):
             attacker = Attacker()
@@ -86,7 +86,7 @@ if __name__ == '__main__':
             sleep(3)
 
             if SPLIT_RUN > 0 and (i + 1) % SPLIT_RUN == 0:
-                send_text(f'RL {RUNTIME_CHT_STR}已進行 {i+1}/{len(attacks)} ({int((i+1) / len(attacks) * 100)}%)')
+                #send_text(f'RL {RUNTIME_CHT_STR}已進行 {i+1}/{len(attacks)} ({int((i+1) / len(attacks) * 100)}%)')
 
                 if IS_INTERACTIVE:
                     print('Reached SPLIT RUN stop point. Please restart COWRIE manually.')
@@ -99,4 +99,4 @@ if __name__ == '__main__':
 
             del attacker
 
-        send_text(f'RL {RUNTIME_CHT_STR}已完成')
+        #send_text(f'RL {RUNTIME_CHT_STR}已完成')

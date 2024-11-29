@@ -367,11 +367,11 @@ class SSH(base_protocol.BaseProtocol):
             # PPS: This packet is for sending command in shell channel.
             channel = self.get_channel(self.extract_int(4), parent)
 
-            # # PPS: To prevent attacker from checking the history commands, simply replace up or down arrow with end.
-            # if payload.endswith(b'\x1b\x5b\x41') or payload.endswith(b'\x1b\x5b\x42'):
-            #     self.data = self.data[:-3] + b'\x1b\x5b\x46'
-            #     payload = payload[:-3] + b'\x1b\x5b\x46'
-            #     log.msg('Attacker pressed up or down arrow to trace history command. Replaced with end.')
+            # PPS: To prevent attacker from checking the history commands, simply replace up or down arrow with end.
+            if payload.endswith(b'\x1b\x5b\x41') or payload.endswith(b'\x1b\x5b\x42'):
+                self.data = self.data[:-3] + b'\x1b\x5b\x46'
+                payload = payload[:-3] + b'\x1b\x5b\x46'
+                #log.msg('Attacker pressed up or down arrow to trace history command. Replaced with end.')
 
             # # PPS: Disable tab, so simply replace it with bell.
             # elif payload.endswith(b'\x09'):

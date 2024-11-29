@@ -23,3 +23,5 @@ numpy
 matplotlib
 transformers
 scikit-learn
+pandas
+secret

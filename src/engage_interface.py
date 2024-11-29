@@ -4,9 +4,9 @@ from time import sleep
 from pathlib import Path
 import json
 import socket
-
+import os
 from twisted.python import log
-
+from cowrie_base_path import COWRIE_BASE_PATH
 from login_state import LoginState
 from engage_action import ACTION_ID2NAME, ACTION_LEN
 
@@ -26,7 +26,7 @@ class EngageInterface:
 
     def read_config(self) -> None:
 
-        with open(Path(__file__).parents[1] / 'etc/engage_interface.json', 'r') as fin:
+        with open(Path(COWRIE_BASE_PATH) / Path('etc/engage_interface.json'), 'r') as fin:
             config = json.load(fin)
 
         self.handler['ip'] = config['handler']['ip']

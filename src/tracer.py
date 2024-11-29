@@ -12,11 +12,10 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from engage_action import ACTION_LEN
-
+from cowrie_base_path import COWRIE_BASE_PATH
 
 DATETIME_FORMAT = '%Y%m%d_%H%M%S.%f'
 DEFAULT_BASE_DIR = '/home/user/Desktop/'
-os.environ['COWRIE_BASE_PATH'] = os.path.dirname(__file__)
 
 def is_valid_datetime(datetime_string: str) -> bool:
     try:
@@ -43,7 +42,7 @@ def search_log(logs: List[TracerLog], pattern: str, skip: int = 0) -> int:
 
 
 def common_exec() -> List[str]:
-    with open(Path(__file__).parents[1] / 'share/cowrie/response_generator/exec.txt', 'r') as fin:
+    with open(Path(COWRIE_BASE_PATH) / Path('share/cowrie/response_generator/exec.txt'), 'r') as fin:
         execs = fin.readlines()
 
     execs = [e.strip() for e in execs]
@@ -189,7 +188,7 @@ class GroupLog:
 
 
 class Tracer:
-    LOGGING_PATH = Path(os.environ['COWRIE_BASE_PATH']).parent / Path('tracer_logs')
+    LOGGING_PATH = Path(COWRIE_BASE_PATH) / Path('tracer_logs')
 
     @staticmethod
     def create_log_dir() -> None:

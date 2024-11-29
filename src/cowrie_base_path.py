@@ -1,0 +1,1 @@
+COWRIE_BASE_PATH = '/home/user/Desktop/A7-SSH-Honeypot/'
