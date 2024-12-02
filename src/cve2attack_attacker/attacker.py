@@ -38,11 +38,11 @@ def load_authentication_candidates() -> None:
 class Attacker:
     SSH_HOST = '192.168.122.1'
     SSH_PORT = 2222
-    EXECUTION_TIMEOUT = 30
+    EXECUTION_TIMEOUT = 5
     MIN_RETRY_TIMES = 3
     MAX_RETRY_TIMES = 5
     TACTIC_REPEAT = 3
-    COWRIE_BOOT_TIME = 15#300
+    COWRIE_BOOT_TIME = 6#300
     COWRIE_RETRY_TIME = COWRIE_BOOT_TIME / 3
 
     @staticmethod
@@ -114,8 +114,8 @@ class Attacker:
             pid = 0
 
             while pid < len(PASSWORD_CANDIDATES):
-                username = USERNAME_CANDIDATES[uid]
-                password = PASSWORD_CANDIDATES[pid]
+                username = 'user'#USERNAME_CANDIDATES[uid]
+                password = 'asd'#PASSWORD_CANDIDATES[pid]
 
                 try:
                     self.client = SSHClient()

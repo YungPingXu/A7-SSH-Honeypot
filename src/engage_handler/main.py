@@ -28,7 +28,7 @@ from tracer import Tracer, LoggingType
 from action_matrix import ACTION_ID2NAME, ACTION_LEN, ACTIVITY_IDF2ID, ACTIVITY_IDF2NAME, ACTIVITY_LEN, MAPPING_ACTIVITY2ACTION
 
 tokenizer = AutoTokenizer.from_pretrained("jackaduma/SecBERT")
-cuda = torch.device('cpu') # torch.device('cuda')
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 
 SERVER_ADDRESS = '0.0.0.0'
@@ -158,8 +158,8 @@ class DoubleDQN:
         self.epsilon_min = epsilon_min
         self.batch_size = batch_size
 
-        self.policy_net = DQN(self.input_size, self.output_size)#.cuda()
-        self.target_net = DQN(self.input_size, self.output_size)#.cuda()
+        self.policy_net = DQN(self.input_size, self.output_size).to(device)#.cuda()
+        self.target_net = DQN(self.input_size, self.output_size).to(device)#.cuda()
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
@@ -170,24 +170,26 @@ class DoubleDQN:
 
 
     def select_action(self, state: Tuple[int, List[str], List[int]]) -> int:
-        with torch.no_grad():
-            q_values = self.policy_net(state_to_tensor(state))
-            #prob = F.softmax(q_values, dim=0)
-            #action = torch.multinomial(prob, 1).item()
-            #print(prob)
-            print(q_values)
-            action = q_values.argmax().item() + 1
-            #print(action)
-        
         # if random.random() < self.epsilon:
         #     return random.randint(0, self.output_size - 1) + 1
-        
-        action = 1
+        with torch.no_grad():
+            q_values = self.policy_net(state_to_tensor(state))
+            print(q_values)
+            print('state', state)
+            if state[0] in (2, 3):
+                excluded_indexes = [3,4,5,6,8,9,10,14,15]
+                q_values = q_values[excluded_indexes]
+            else:
+                excluded_indexes = [0,1,2,3,4,5,6,8,9,10,14,15]
+                q_values = q_values[excluded_indexes]
+            # if random.random() < self.epsilon:
+            #     action = random.choice(excluded_indexes) + 1
+            # else:
+            action = excluded_indexes[q_values.argmax().item()] + 1
+            print('action', action[[3,4,5,6,8,9,10,14,15]])
             
         return action
-        
-        
-
+    
 
     def store_transition(self, state: Tuple[int, List[str], List[int]], action: int, reward: float, next_state: Tuple[int, List[str], List[int]], done: bool) -> None:
 
@@ -349,7 +351,8 @@ class EngageHandler:
         # Create new object for new client.
         else:
             model_filename = Path(__file__).parents[0] / 'model' / 'target_model'
-            state_dict = torch.load(model_filename, map_location=torch.device('cpu'), weights_only=True)
+            state_dict = torch.load(model_filename, weights_only=True)
+            #state_dict = torch.load(model_filename, map_location=torch.device('cpu'), weights_only=True)
 
             environments = [CustomEnvironment(), DoubleDQN(), 0]
 
@@ -459,7 +462,7 @@ def state_to_tensor(state: Tuple[int, List[str], List[int]]) -> torch.Tensor:
     attribute_tensor = torch.tensor(embed_attributes(attributes), dtype=torch.float32)
     suggested_activities_tensor = torch.tensor(encode_suggested_activities(suggested_activities), dtype=torch.float32)
     
-    return torch.cat((login_state_tensor, attribute_tensor, suggested_activities_tensor))#.cuda()
+    return torch.cat((login_state_tensor, attribute_tensor, suggested_activities_tensor)).to(device)#.cuda()
     
 
 if __name__ == '__main__':

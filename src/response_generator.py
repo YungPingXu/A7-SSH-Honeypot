@@ -664,34 +664,34 @@ class ResponseGenerator:
         else:
             #is_logged_in = True
 
-            # is_logged_in = False
-            # USERNAME = ['root', 'admin', 'user']
-            # PASSWORDS = ['123', 'asd']
-            # if username in USERNAME and password in PASSWORDS:
-            #     log.msg(f'Attacker {attacker_ip} login with ({username},{password}).')
-            #     is_logged_in = True
-
             is_logged_in = False
-            log.msg(self.login_cand_collect)
-            if attacker_ip in self.login_cand_collect:
-                accept_login = self.login_cand_collect[attacker_ip]
-            else:
-                accept_login = {}
+            USERNAME = ['root', 'admin', 'user']
+            PASSWORDS = ['123', 'asd']
+            if username in USERNAME and password in PASSWORDS:
+                log.msg(f'Attacker {attacker_ip} login with ({username},{password}).')
+                is_logged_in = True
 
-            # Match username in accepted login.
-            if username in accept_login:
-                # No restriction on password.
-                if len(accept_login[username]) == 0:
-                    log.msg(f'Attacker {attacker_ip} login with any password ({username},{password}).')
-                    is_logged_in = True
+            # is_logged_in = False
+            # log.msg(self.login_cand_collect)
+            # if attacker_ip in self.login_cand_collect:
+            #     accept_login = self.login_cand_collect[attacker_ip]
+            # else:
+            #     accept_login = {}
 
-                # Apply restriction on password.
-                else:
-                    for accept_password in accept_login[username]:
-                        if password == accept_password:
-                            log.msg(f'Attacker {attacker_ip} login with exactly match ({username},{password}).')
-                            is_logged_in = True
-                            break
+            # # Match username in accepted login.
+            # if username in accept_login:
+            #     # No restriction on password.
+            #     if len(accept_login[username]) == 0:
+            #         log.msg(f'Attacker {attacker_ip} login with any password ({username},{password}).')
+            #         is_logged_in = True
+
+            #     # Apply restriction on password.
+            #     else:
+            #         for accept_password in accept_login[username]:
+            #             if password == accept_password:
+            #                 log.msg(f'Attacker {attacker_ip} login with exactly match ({username},{password}).')
+            #                 is_logged_in = True
+            #                 break
 
             # Save login credential for successful login to match attacker session to its login credential later.
             # Only this info can be used to log in for same attacker and same username for now.
@@ -804,6 +804,7 @@ class ResponseGenerator:
 
         return response
 
+    # Action ID 6
     def action_network_block(self, attacker_id: str, attacker_cmd: bytes, attr: List[str]) -> Union[str, bytes]:
         if attr[6] == 'localhost' and attr[7] != '127.0.0.1':
             destination = attr[7]
@@ -814,6 +815,7 @@ class ResponseGenerator:
         log.msg(f'[Post-Process/action_network_block/domain] Blocked traffics for {destination}.')
         self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'iptables -A INPUT -s {destination} -j DROP; #{self.backend_hidden_phrase}'")
         return attacker_cmd
+    
     # # Action ID 6
     # def action_network_block(self, attacker_id: str, attacker_cmd: bytes, attr: List[str]) -> Union[str, bytes]:
 
@@ -854,44 +856,49 @@ class ResponseGenerator:
 
     #     return attacker_cmd
 
-
     # Action ID 7
-    def action_network_forward(self, attacker_id: str, attacker_cmd: bytes, attr: List[str]) -> Union[str, bytes]:
+    def action_degrade_network_speed(self, attacker_id: str, attacker_cmd: bytes) -> Union[str, bytes]:
 
-        attacker_ip = attacker_id.split(':')[0]
-        src_ip = self.query_backend_ip(attacker_id)
-        new_dst_ip = self.pick_from_backendPool(src_ip)[1]
-        due = self.phrase_replace_due()
-
-        if len(new_dst_ip) > 0:
-            # For ip attr.
-            if attr[7] == '127.0.0.1':
-                dst_ip = src_ip
-            else:
-                dst_ip = attr[7]
-
-            blocker = NetworkForwarder(src_ip, dst_ip, new_dst_ip, due=due)
-
-            self.phraseReplace_collect[attacker_id].append((new_dst_ip.encode(), dst_ip.encode(), due))
-            self.iptables_applyer.sendall(blocker.serialize())
-            log.msg(f'[Post-Process/action_network_forward/ip] Forwarded traffics from {dst_ip} to {new_dst_ip} for source {src_ip} .')
-
-            # For domain attr.
-            if attr[6] == 'localhost':
-                dst_ip = src_ip
-            else:
-                dst_ip = attr[6]
-
-            blocker = NetworkForwarder(src_ip, dst_ip, new_dst_ip, due=due)
-
-            self.phraseReplace_collect[attacker_id].append((new_dst_ip.encode(), dst_ip.encode(), due))
-            self.iptables_applyer.sendall(blocker.serialize())
-            log.msg(f'[Post-Process/action_network_forward/domain] Forwarded traffics from {dst_ip} to {new_dst_ip} for source {src_ip} .')
-
-        else:
-            log.msg('[Post-Process/action_network_forward] No forward destination available.')
-
+        self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'wondershaper ens3 102400 512000; #{self.backend_hidden_phrase}'")
         return attacker_cmd
+
+    # # Action ID 7
+    # def action_network_forward(self, attacker_id: str, attacker_cmd: bytes, attr: List[str]) -> Union[str, bytes]:
+
+    #     attacker_ip = attacker_id.split(':')[0]
+    #     src_ip = self.query_backend_ip(attacker_id)
+    #     new_dst_ip = self.pick_from_backendPool(src_ip)[1]
+    #     due = self.phrase_replace_due()
+
+    #     if len(new_dst_ip) > 0:
+    #         # For ip attr.
+    #         if attr[7] == '127.0.0.1':
+    #             dst_ip = src_ip
+    #         else:
+    #             dst_ip = attr[7]
+
+    #         blocker = NetworkForwarder(src_ip, dst_ip, new_dst_ip, due=due)
+
+    #         self.phraseReplace_collect[attacker_id].append((new_dst_ip.encode(), dst_ip.encode(), due))
+    #         self.iptables_applyer.sendall(blocker.serialize())
+    #         log.msg(f'[Post-Process/action_network_forward/ip] Forwarded traffics from {dst_ip} to {new_dst_ip} for source {src_ip} .')
+
+    #         # For domain attr.
+    #         if attr[6] == 'localhost':
+    #             dst_ip = src_ip
+    #         else:
+    #             dst_ip = attr[6]
+
+    #         blocker = NetworkForwarder(src_ip, dst_ip, new_dst_ip, due=due)
+
+    #         self.phraseReplace_collect[attacker_id].append((new_dst_ip.encode(), dst_ip.encode(), due))
+    #         self.iptables_applyer.sendall(blocker.serialize())
+    #         log.msg(f'[Post-Process/action_network_forward/domain] Forwarded traffics from {dst_ip} to {new_dst_ip} for source {src_ip} .')
+
+    #     else:
+    #         log.msg('[Post-Process/action_network_forward] No forward destination available.')
+
+    #     return attacker_cmd
 
 
     # Action ID 8
@@ -924,7 +931,7 @@ class ResponseGenerator:
 
         for old_ip in old_ips:
             if not old_ip.endswith(b'.255'):
-                new_ip = b'192.168.5.' + str(randint(2, 254)).encode()
+                new_ip = b'192.168.4.' + str(randint(2, 254)).encode()
                 content = content.replace(old_ip, new_ip)
                 log.msg(f'[Post-Process/action_replace_system_str_] Replaced ip from {old_ip.decode()} to {new_ip.decode()} .')
 
@@ -1037,10 +1044,8 @@ class ResponseGenerator:
 
     # Action ID 15
     def action_reset(self, attacker_id: str) -> Union[str, bytes]:
-
         log.msg('[Post-Process/action_reset] Shutdown vm in backend pool to reset.')
-        self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'reboot; #{self.backend_hidden_phrase}'") #poweroff
-
+        # self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'reboot; #{self.backend_hidden_phrase}'") #poweroff
         return ''
 
 
@@ -1062,11 +1067,6 @@ class ResponseGenerator:
 
         return 'Processes killed.\r\n' #attacker_cmd
 
-    def action_degrade_network_speed(self, attacker_id: str, attacker_cmd: bytes) -> Union[str, bytes]:
-
-        self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'wondershaper ens3 102400 512000; #{self.backend_hidden_phrase}'")
-        return attacker_cmd
-
     def firstExec_until_now(self, attacker_id: str) -> int:
 
         if attacker_id in self.firstExec_collect:
@@ -1083,6 +1083,8 @@ class ResponseGenerator:
         else:
             log.msg(f'Reuse existing cmd history len={len(self.cmdHistory_collect[attacker_id])}.')
 
+        log.msg('islogin', isLogin)
+        log.msg('self.loginState_collect', self.loginState_collect)
         if attacker_id not in self.loginState_collect:
             if isLogin:
                 self.loginState_collect[attacker_id] = LoginState.TRY_LOGIN
@@ -1222,18 +1224,27 @@ class ResponseGenerator:
         self.logger.log('[Post-Process] Setting ...', LoggingType.DEBUG)
         self.logger.log(str(isLogin))
         # Only do this when (attacker try to log in) and (engage handler selects login related action).
-        if self.loginState_collect[attacker_id] == LoginState.TRY_LOGIN and 1 <= selected_action <= 3:
-            if selected_action == 1:
-                self.action_login_add(attacker_id, attr)
-            elif selected_action == 2:
+        #log.msg('self.loginState_collect', self.loginState_collect[attacker_id])
+
+        self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'wondershaper clear ens3; #{self.backend_hidden_phrase}'")
+        self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'iptables -F INPUT; #{self.backend_hidden_phrase}'")
+        
+        if self.loginState_collect[attacker_id] == LoginState.TRY_LOGIN: #and 1 <= selected_action <= 3:
+            if selected_action == 2:
                 self.action_login_remove(attacker_id, attr)
-            else:
+            elif selected_action == 3:
                 self.action_login_remove_all(attacker_id)
+            else:
+                self.action_login_add(attacker_id, attr)
+            # if selected_action == 1:
+            #     self.action_login_add(attacker_id, attr)
+            # elif selected_action == 2:
+            #     self.action_login_remove(attacker_id, attr)
+            # else:
+            #     self.action_login_remove_all(attacker_id)
 
         # Only do this when (attacker is logged in).
         elif self.loginState_collect[attacker_id] != LoginState.TRY_LOGIN:
-            # self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'wondershaper clear ens3; #{self.backend_hidden_phrase}'")
-            # self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'iptables -F INPUT; #{self.backend_hidden_phrase}'")
             # if selected_action == 1:
             #     self.action_login_add(attacker_id, attr)
             #     response = commands[0]

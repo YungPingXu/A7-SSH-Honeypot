@@ -13,7 +13,7 @@ import training
 # This script runs attacks.
 
 
-IS_INTERACTIVE = True
+IS_INTERACTIVE = False
 IS_TRAINING = training.IS_TRAINING
 RUNTIME_CHT_STR = {True: '訓練', False: '測試'}[IS_TRAINING]
 SPLIT_RUN = 0

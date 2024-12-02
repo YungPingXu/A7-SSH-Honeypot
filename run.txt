@@ -57,3 +57,5 @@ iptables -A INPUT -s 8.8.8.8 -j DROP
 
 iptables -L INPUT
 iptables -F INPUT
+
+sudo nano /etc/wazuh-indexer/jvm.options
