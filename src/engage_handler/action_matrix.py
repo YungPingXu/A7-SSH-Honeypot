@@ -7,21 +7,21 @@ NUMBER_CIRCLE = ['', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '�
 
 ACTION_ID2NAME = [
     '',
+    'Remove all users.',
     'Add a weak password for the user.',
     'Remove a password for the user.',
-    'Remove all users.',
-    'Allow command execution and return output normally.',
-    'Block command execution and return permission denied string.',
-    'Block the access of network operation for the IP or domain.',
-    'Degrade the network speed when the attacker downloads or exfiltrates data.',
-    '',
     'Replace system-related string from the executed command.',
+    'Block command execution and return permission denied string.',
+    'Degrade the network speed when the attacker downloads or exfiltrates data.',
+    'Reset the system to original state.',
+    '',
+    'Allow command execution and return output normally.',
     'Output the executed command normally with some version variation.',
     'Show part of executed command only.',
     '',
     '',
     '',
-    'Reset the system to original state.',
+    'Block the access of network operation for the IP or domain.',
     'Kill processes launched by the attacker.'
 ]
 # ACTION_ID2NAME = ['',

@@ -41,6 +41,7 @@ COMMON_PORTS = (20, 21, 22, 25, 53, 80, 123, 443, 465, 587, 2525, 3389, 8080, 80
 
 SHARED_ENGAGE_INTERFACE_NAME = '0.0.0.0:0'
 
+login_times = {}
 
 def char_remove(s: str, chars: List[str]) -> str:
 
@@ -670,28 +671,28 @@ class ResponseGenerator:
             if username in USERNAME and password in PASSWORDS:
                 log.msg(f'Attacker {attacker_ip} login with ({username},{password}).')
                 is_logged_in = True
+            else:
+                is_logged_in = False
+                log.msg(self.login_cand_collect)
+                if attacker_ip in self.login_cand_collect:
+                    accept_login = self.login_cand_collect[attacker_ip]
+                else:
+                    accept_login = {}
 
-            # is_logged_in = False
-            # log.msg(self.login_cand_collect)
-            # if attacker_ip in self.login_cand_collect:
-            #     accept_login = self.login_cand_collect[attacker_ip]
-            # else:
-            #     accept_login = {}
+                # Match username in accepted login.
+                if username in accept_login:
+                    # No restriction on password.
+                    if len(accept_login[username]) == 0:
+                        log.msg(f'Attacker {attacker_ip} login with any password ({username},{password}).')
+                        is_logged_in = True
 
-            # # Match username in accepted login.
-            # if username in accept_login:
-            #     # No restriction on password.
-            #     if len(accept_login[username]) == 0:
-            #         log.msg(f'Attacker {attacker_ip} login with any password ({username},{password}).')
-            #         is_logged_in = True
-
-            #     # Apply restriction on password.
-            #     else:
-            #         for accept_password in accept_login[username]:
-            #             if password == accept_password:
-            #                 log.msg(f'Attacker {attacker_ip} login with exactly match ({username},{password}).')
-            #                 is_logged_in = True
-            #                 break
+                    # Apply restriction on password.
+                    else:
+                        for accept_password in accept_login[username]:
+                            if password == accept_password:
+                                log.msg(f'Attacker {attacker_ip} login with exactly match ({username},{password}).')
+                                is_logged_in = True
+                                break
 
             # Save login credential for successful login to match attacker session to its login credential later.
             # Only this info can be used to log in for same attacker and same username for now.
@@ -792,6 +793,32 @@ class ResponseGenerator:
         log.msg(f'[Post-Process/action_login_remove_all] Accepted login for {attacker_ip} is all cleared.')
 
 
+    # Action ID 4
+    def action_replace_system_str_(self, content: bytes) -> bytes:
+
+        # For interface.
+        tokens = str_extra_split(content.decode(), '=:')
+        tokens = list(set(tokens))
+
+        for token in tokens:
+            if token in COMMON_INTERFACES and token != 'lo':
+                old_interface = token
+                new_interface = token[:-1] + str(randint(1, 9))
+                content = content.replace(old_interface.encode(), new_interface.encode())
+                log.msg(f'[Post-Process/action_replace_system_str_] Replaced interface from {old_interface} to {new_interface} .')
+
+        # For ip.
+        old_ips = re.findall(rb'192\.168\.4\.\d{1,3}', content)
+
+        for old_ip in old_ips:
+            if not old_ip.endswith(b'.255'):
+                new_ip = b'192.168.5.' + str(randint(2, 254)).encode()
+                content = content.replace(old_ip, new_ip)
+                log.msg(f'[Post-Process/action_replace_system_str_] Replaced ip from {old_ip.decode()} to {new_ip.decode()} .')
+
+        return content
+    
+
     # Action ID 5
     def action_block_access(self, attr: List[str]) -> Union[str, bytes]:
 
@@ -803,18 +830,6 @@ class ResponseGenerator:
         log.msg('[Post-Process/action_block_access] Set response string to "Permission denied".')
 
         return response
-
-    # Action ID 6
-    def action_network_block(self, attacker_id: str, attacker_cmd: bytes, attr: List[str]) -> Union[str, bytes]:
-        if attr[6] == 'localhost' and attr[7] != '127.0.0.1':
-            destination = attr[7]
-        elif attr[6] != 'localhost':
-            destination = attr[6]
-        else:
-            return attacker_cmd
-        log.msg(f'[Post-Process/action_network_block/domain] Blocked traffics for {destination}.')
-        self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'iptables -A INPUT -s {destination} -j DROP; #{self.backend_hidden_phrase}'")
-        return attacker_cmd
     
     # # Action ID 6
     # def action_network_block(self, attacker_id: str, attacker_cmd: bytes, attr: List[str]) -> Union[str, bytes]:
@@ -856,11 +871,17 @@ class ResponseGenerator:
 
     #     return attacker_cmd
 
-    # Action ID 7
+    # Action ID 6
     def action_degrade_network_speed(self, attacker_id: str, attacker_cmd: bytes) -> Union[str, bytes]:
 
         self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'wondershaper ens3 102400 512000; #{self.backend_hidden_phrase}'")
         return attacker_cmd
+
+    # Action ID 7
+    def action_reset(self, attacker_id: str) -> Union[str, bytes]:
+        log.msg('[Post-Process/action_reset] Shutdown vm in backend pool to reset.')
+        # self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'reboot; #{self.backend_hidden_phrase}'") #poweroff
+        return ''
 
     # # Action ID 7
     # def action_network_forward(self, attacker_id: str, attacker_cmd: bytes, attr: List[str]) -> Union[str, bytes]:
@@ -910,33 +931,6 @@ class ResponseGenerator:
                 log.msg(f'[Post-Process/action_replace_str] Replaced string from "{att}" to "".')
 
         return attacker_cmd
-
-
-    # Action ID 9
-    def action_replace_system_str_(self, content: bytes) -> bytes:
-
-        # For interface.
-        tokens = str_extra_split(content.decode(), '=:')
-        tokens = list(set(tokens))
-
-        for token in tokens:
-            if token in COMMON_INTERFACES and token != 'lo':
-                old_interface = token
-                new_interface = token[:-1] + str(randint(1, 9))
-                content = content.replace(old_interface.encode(), new_interface.encode())
-                log.msg(f'[Post-Process/action_replace_system_str_] Replaced interface from {old_interface} to {new_interface} .')
-
-        # For ip.
-        old_ips = re.findall(rb'192\.168\.5\.\d{1,3}', content)
-
-        for old_ip in old_ips:
-            if not old_ip.endswith(b'.255'):
-                new_ip = b'192.168.4.' + str(randint(2, 254)).encode()
-                content = content.replace(old_ip, new_ip)
-                log.msg(f'[Post-Process/action_replace_system_str_] Replaced ip from {old_ip.decode()} to {new_ip.decode()} .')
-
-        return content
-
 
     # Action ID 10
     def action_version_variation_(self, content: bytes) -> bytes:
@@ -1043,11 +1037,16 @@ class ResponseGenerator:
 
 
     # Action ID 15
-    def action_reset(self, attacker_id: str) -> Union[str, bytes]:
-        log.msg('[Post-Process/action_reset] Shutdown vm in backend pool to reset.')
-        # self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'reboot; #{self.backend_hidden_phrase}'") #poweroff
-        return ''
-
+    def action_network_block(self, attacker_id: str, attacker_cmd: bytes, attr: List[str]) -> Union[str, bytes]:
+        if attr[6] == 'localhost' and attr[7] != '127.0.0.1':
+            destination = attr[7]
+        elif attr[6] != 'localhost':
+            destination = attr[6]
+        else:
+            return attacker_cmd
+        log.msg(f'[Post-Process/action_network_block/domain] Blocked traffics for {destination}.')
+        self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'iptables -A INPUT -s 192.168.101.0/24 -j DROP; #{self.backend_hidden_phrase}'")
+        return attacker_cmd
 
     # Action ID 16
     def action_kill_attacker_launched(self, attacker_id: str, attacker_cmd: bytes) -> Union[str, bytes]:
@@ -1230,10 +1229,10 @@ class ResponseGenerator:
         self.run_command_in_backend(attacker_id, f"echo {self.backend_login['root_password']} | sudo -S bash -c 'iptables -F INPUT; #{self.backend_hidden_phrase}'")
         
         if self.loginState_collect[attacker_id] == LoginState.TRY_LOGIN: #and 1 <= selected_action <= 3:
-            if selected_action == 2:
-                self.action_login_remove(attacker_id, attr)
-            elif selected_action == 3:
+            if selected_action == 1:
                 self.action_login_remove_all(attacker_id)
+            elif selected_action == 3:
+                self.action_login_remove(attacker_id, attr)
             else:
                 self.action_login_add(attacker_id, attr)
             # if selected_action == 1:
@@ -1245,72 +1244,84 @@ class ResponseGenerator:
 
         # Only do this when (attacker is logged in).
         elif self.loginState_collect[attacker_id] != LoginState.TRY_LOGIN:
-            # if selected_action == 1:
-            #     self.action_login_add(attacker_id, attr)
-            #     response = commands[0]
-            # elif selected_action in (2, 3):
-            #     self.autoSudo_collect[attacker_id] = True
-            #     response = commands[0]
-            # elif selected_action == 4:
-            #     response = self.action_block_access(attr)
-            # elif selected_action == 5:
-            #     response = self.action_network_block(attacker_id, commands[0], attr)
-            # elif selected_action == 6:
-            #     response = self.action_degrade_network_speed(attacker_id, commands[0])
-            # elif selected_action == 7:
-            #     response = self.action_replace_str(commands[0], attr)
-            # elif selected_action == 8:
-            #     self.respFilter_collect[attacker_id] = (self.action_replace_system_str_, ())
-            #     response = commands[0]
-            # elif selected_action == 9:
-            #     self.respFilter_collect[attacker_id] = (self.action_version_variation_, ())
-            #     response = commands[0]
-            # elif selected_action == 10:
-            #     self.respFilter_collect[attacker_id] = (self.action_show_part_output_, (attacker_id, attr))
-            #     response = commands[0]
-            # elif selected_action == 11:
-            #     response = self.action_kill_attacker_launched(attacker_id, commands[0])
-
             if selected_action == 1:
-                self.action_login_add(attacker_id, attr)
-                response = commands[0]
-            elif selected_action == 2:
-                self.action_login_remove(attacker_id, attr)
-                response = commands[0]
-            elif selected_action == 3:
                 self.action_login_remove_all(attacker_id)
                 response = commands[0]
-            elif selected_action == 4:
-                self.autoSudo_collect[attacker_id] = True
+            elif selected_action == 2:
+                self.action_login_add(attacker_id, attr)
                 response = commands[0]
+            elif selected_action == 3:
+                self.action_login_remove(attacker_id, attr)
+                response = commands[0]
+            elif selected_action == 4:
+                self.respFilter_collect[attacker_id] = (self.action_replace_system_str_, ())
+                response = commands[0]
+                # self.autoSudo_collect[attacker_id] = True
+                # response = commands[0]
             elif selected_action == 5:
                 response = self.action_block_access(attr)
             elif selected_action == 6:
-                response = self.action_network_block(attacker_id, commands[0], attr)
-            elif selected_action == 7:
-                #response = self.action_network_forward(attacker_id, commands[0], attr)
                 response = self.action_degrade_network_speed(attacker_id, commands[0])
-            elif selected_action == 8:
-                response = self.action_replace_str(commands[0], attr)
+                #response = self.action_network_block(attacker_id, commands[0], attr)
+            elif selected_action == 7:
+                response = self.action_reset(attacker_id)
+                #response = self.action_degrade_network_speed(attacker_id, commands[0])
             elif selected_action == 9:
-                self.respFilter_collect[attacker_id] = (self.action_replace_system_str_, ())
+                self.autoSudo_collect[attacker_id] = True
                 response = commands[0]
+                # self.respFilter_collect[attacker_id] = (self.action_replace_system_str_, ())
+                # response = commands[0]
             elif selected_action == 10:
                 self.respFilter_collect[attacker_id] = (self.action_version_variation_, ())
                 response = commands[0]
             elif selected_action == 11:
                 self.respFilter_collect[attacker_id] = (self.action_show_part_output_, (attacker_id, attr))
                 response = commands[0]
-            elif selected_action == 12:
-                response = self.action_stuff(commands[0])
-            elif selected_action == 13:
-                response = self.action_leak_info(attacker_id, commands[0])
-            elif selected_action == 14:
-                response = self.action_send_phishing_email(attacker_id, commands[0])
             elif selected_action == 15:
-                response = self.action_reset(attacker_id)
+                response = self.action_network_block(attacker_id, commands[0], attr)
+                #response = self.action_reset(attacker_id)
             else:
                 response = self.action_kill_attacker_launched(attacker_id, commands[0])
+            # if selected_action == 1:
+            #     self.action_login_add(attacker_id, attr)
+            #     response = commands[0]
+            # elif selected_action == 2:
+            #     self.action_login_remove(attacker_id, attr)
+            #     response = commands[0]
+            # elif selected_action == 3:
+            #     self.action_login_remove_all(attacker_id)
+            #     response = commands[0]
+            # elif selected_action == 4:
+            #     self.autoSudo_collect[attacker_id] = True
+            #     response = commands[0]
+            # elif selected_action == 5:
+            #     response = self.action_block_access(attr)
+            # elif selected_action == 6:
+            #     response = self.action_network_block(attacker_id, commands[0], attr)
+            # elif selected_action == 7:
+            #     #response = self.action_network_forward(attacker_id, commands[0], attr)
+            #     response = self.action_degrade_network_speed(attacker_id, commands[0])
+            # elif selected_action == 8:
+            #     response = self.action_replace_str(commands[0], attr)
+            # elif selected_action == 9:
+            #     self.respFilter_collect[attacker_id] = (self.action_replace_system_str_, ())
+            #     response = commands[0]
+            # elif selected_action == 10:
+            #     self.respFilter_collect[attacker_id] = (self.action_version_variation_, ())
+            #     response = commands[0]
+            # elif selected_action == 11:
+            #     self.respFilter_collect[attacker_id] = (self.action_show_part_output_, (attacker_id, attr))
+            #     response = commands[0]
+            # elif selected_action == 12:
+            #     response = self.action_stuff(commands[0])
+            # elif selected_action == 13:
+            #     response = self.action_leak_info(attacker_id, commands[0])
+            # elif selected_action == 14:
+            #     response = self.action_send_phishing_email(attacker_id, commands[0])
+            # elif selected_action == 15:
+            #     response = self.action_reset(attacker_id)
+            # else:
+            #     response = self.action_kill_attacker_launched(attacker_id, commands[0])
 
         self.logger.log('[Post-Process] Setting ... Done', LoggingType.DEBUG)
 

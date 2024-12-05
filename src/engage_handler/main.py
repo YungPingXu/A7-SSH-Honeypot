@@ -174,8 +174,8 @@ class DoubleDQN:
         #     return random.randint(0, self.output_size - 1) + 1
         with torch.no_grad():
             q_values = self.policy_net(state_to_tensor(state))
-            print(q_values)
-            print('state', state)
+            #print(q_values)
+            #print('state', state)
             if state[0] in (2, 3):
                 excluded_indexes = [3,4,5,6,8,9,10,14,15]
                 q_values = q_values[excluded_indexes]
@@ -186,8 +186,7 @@ class DoubleDQN:
             #     action = random.choice(excluded_indexes) + 1
             # else:
             action = excluded_indexes[q_values.argmax().item()] + 1
-            print('action', action[[3,4,5,6,8,9,10,14,15]])
-            
+            print('q_value', q_values)
         return action
     
 
@@ -254,8 +253,8 @@ class EngageHandler:
         self.clients: List[Thread] = []
         self.buffer: bytes = b''
         self.environments: Union[None, list] = None
-        # self.fixed_state = [4,6,4,6,4] #[4,4,1,4,5,4,4,7,4,16,16]
-        # self.cnt = 0
+        #self.fixed_state = [9,9,5,9,4,9,10,9,6]
+        #self.cnt = 0
 
         if IS_TRAINING:
             self.environments = [CustomEnvironment(), DoubleDQN(), 0]
@@ -351,8 +350,8 @@ class EngageHandler:
         # Create new object for new client.
         else:
             model_filename = Path(__file__).parents[0] / 'model' / 'target_model'
-            state_dict = torch.load(model_filename, weights_only=True)
-            #state_dict = torch.load(model_filename, map_location=torch.device('cpu'), weights_only=True)
+            #state_dict = torch.load(model_filename, weights_only=True)
+            state_dict = torch.load(model_filename, map_location=torch.device('cpu'), weights_only=True)
 
             environments = [CustomEnvironment(), DoubleDQN(), 0]
 
@@ -372,10 +371,11 @@ class EngageHandler:
 
             while self.keep_running and not environments[0].done:
                 action = environments[1].select_action(environments[0].current_state)
-                # action = self.fixed_state[self.cnt % len(self.fixed_state)]
-                # self.cnt += 1    
-                #action=16
+                #action = self.fixed_state[self.cnt % len(self.fixed_state)]
+                #self.cnt += 1    
+                
                 #action = 7
+                
                 # DEBUG
                 # if len(PREDEFINED_ACTIONS[client_id]) > 0:
                 #     action = PREDEFINED_ACTIONS[client_id].pop(0)

@@ -28,7 +28,7 @@ ssh user@127.0.0.1 -p 2222
 
 # use ssh connection to test qemu vm
 # password: lZupZLJVMS4UxVA8ZRVG (same for password in wazuh_interface.json)
-ssh root@192.168.4.59 -p 22
+ssh root@192.168.4.58 -p 22
 
 # list qemu vms
 pgrep -U 0 -f qvm
@@ -59,3 +59,7 @@ iptables -L INPUT
 iptables -F INPUT
 
 sudo nano /etc/wazuh-indexer/jvm.options
+
+ip addr
+ping 192.168.101.22
+scp test2@192.168.101.22:/home/test2/Desktop/rockyou.txt rockyou.txt
